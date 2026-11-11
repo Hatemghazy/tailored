@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>tAIlored — interactive prototype</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   tAIlored — "Depth Field"
+   A measuring instrument that happens to sell shoes.
+   Cool aqua = measurement and truth.  Warm ember = action.
+   ============================================================ */
+:root{
+  /* exact values from your Figma "2. Semantic" collection, Light mode */
+  --bg:#ffffff; --surface:#ffffff; --subtle:#f5f5f5; --muted:#e6e6e6;
+  --hair:#e6e6e6; --hair-strong:#cccccc;
+
+  --primary:#0f5c56; --primary-hover:#0d4f4a; --primary-subtle:#eaf6f4; --primary-on:#ffffff;
+  --accent:#d9714e; --accent-hover:#c85a34; --accent-subtle:#fdf1ec; --accent-on:#ffffff;
+
+  --ink:#1a1a1a; --ink-2:#666666; --ink-3:#808080;
+
+  --success:#2d9159; --success-subtle:#eef8f2; --success-border:#8fcfa9;
+  --warning:#d08f2a; --warning-subtle:#fef7ea; --warning-border:#f3cc8a;
+  --error:#c13b3b; --error-subtle:#fdefee; --error-border:#e8938f;
+  --info:#2678aa; --info-subtle:#eef7fc; --info-border:#8fc4e0;
+
+  --primary-glow:rgba(15,92,86,.22); --accent-glow:rgba(217,113,78,.30);
+  --r-s:10px; --r-m:16px; --r-l:22px; --r-xl:30px;
+  --ease:cubic-bezier(.16,.84,.28,1);
+  --spring:cubic-bezier(.34,1.42,.44,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'IBM Plex Sans Arabic',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#e9eceb; color:var(--ink);
+  display:flex; align-items:flex-start; justify-content:center; gap:32px;
+  padding:30px 22px 56px; min-height:100%;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'tnum' 1;
+}
+body::before{ content:none; }
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:6px}
+
+/* ---------- device ---------- */
+.device{
+  width:390px; height:844px; flex:0 0 auto; position:sticky; top:30px; z-index:1;
+  border-radius:46px; background:var(--bg); overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:
+    0 0 0 10px #16181a, 0 0 0 11px rgba(0,0,0,.08),
+    0 40px 90px rgba(0,0,0,.35);
+}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+/* topographic signature, same motif as the dark build, tuned faint for a light surface */
+.screen::before{
+  content:''; position:absolute; inset:-40% -20% auto -20%; height:120%; pointer-events:none; opacity:.6;
+  background-image:
+    radial-gradient(closest-side, transparent 0 62%, rgba(15,92,86,.05) 62.6% 63.4%, transparent 64%),
+    radial-gradient(closest-side, transparent 0 52%, rgba(15,92,86,.045) 52.6% 53.4%, transparent 54%),
+    radial-gradient(closest-side, transparent 0 42%, rgba(15,92,86,.04) 42.6% 43.4%, transparent 44%),
+    radial-gradient(closest-side, transparent 0 32%, rgba(15,92,86,.035) 32.6% 33.4%, transparent 34%),
+    radial-gradient(closest-side, transparent 0 22%, rgba(15,92,86,.03) 22.6% 23.4%, transparent 24%);
+  background-repeat:no-repeat; background-size:150% 90%; background-position:50% 30%;
+}
+.screen.cam-screen::before{content:none}
+
+/* ---------- status bar ---------- */
+.statusbar{height:54px;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 26px 8px;font-size:13px;font-weight:600;color:var(--ink);position:relative;z-index:2}
+.sb-icons{display:flex;align-items:flex-end;gap:4px;height:12px}
+.sb-icons i{display:block;width:3px;border-radius:2px;background:currentColor;opacity:.85}
+.sb-batt{width:23px;height:11px;border:1px solid currentColor;border-radius:3px;position:relative;opacity:.6;margin-left:3px}
+.sb-batt::after{content:'';position:absolute;inset:2px;right:7px;background:var(--primary);border-radius:1px}
+
+/* ---------- app bar ---------- */
+.appbar{height:58px;flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:0 12px;
+  position:relative;z-index:2}
+.appbar h1{font-size:17px;font-weight:600;flex:1;letter-spacing:-.01em;text-align:center}
+.iconbtn{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:var(--ink);
+  flex:0 0 auto;transition:background .2s var(--ease),transform .2s var(--spring);position:relative}
+.iconbtn:hover{background:var(--subtle)}
+.iconbtn:active{transform:scale(.9)}
+.iconbtn svg{width:22px;height:22px}
+
+/* ---------- content ---------- */
+.content{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 18px 26px;
+  display:flex;flex-direction:column;gap:14px;position:relative;z-index:2;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+.content.center{justify-content:center;align-items:center;text-align:center}
+.spacer{flex:1 1 auto;min-height:10px}
+.content > *{flex-shrink:0}
+.content > .spacer{flex-shrink:1}
+
+/* staggered entrance — one orchestrated reveal per screen, not per element hover */
+.screen.enter .content > *{animation:lift .5s var(--ease) backwards}
+.screen.enter .content > *:nth-child(1){animation-delay:.02s}
+.screen.enter .content > *:nth-child(2){animation-delay:.06s}
+.screen.enter .content > *:nth-child(3){animation-delay:.10s}
+.screen.enter .content > *:nth-child(4){animation-delay:.14s}
+.screen.enter .content > *:nth-child(5){animation-delay:.18s}
+.screen.enter .content > *:nth-child(n+6){animation-delay:.21s}
+@keyframes lift{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+h2.title{font-family:'Sora',sans-serif;font-size:27px;font-weight:600;letter-spacing:-.035em;line-height:1.18}
+p.sub{font-size:14px;color:var(--ink-2);line-height:1.55}
+p.note{font-size:12px;color:var(--ink-3);line-height:1.5}
+.sect{font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:.02em;margin-top:6px;
+  display:flex;align-items:center;gap:9px}
+.sect::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent)}
+
+/* ---------- buttons ---------- */
+.btn{height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:16px;font-weight:600;width:100%;flex:0 0 auto;padding:0 22px;position:relative;overflow:hidden;
+  transition:transform .22s var(--spring),box-shadow .3s var(--ease),opacity .2s}
+.btn:active{transform:scale(.965)}
+.btn svg{width:19px;height:19px}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;
+  box-shadow:0 10px 26px -10px var(--accent-glow)}
+.btn-accent:hover{box-shadow:0 14px 32px -10px var(--accent-glow)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;
+  box-shadow:0 10px 26px -10px var(--primary-glow)}
+.btn-secondary{background:var(--primary-subtle);color:var(--primary);border:1px solid var(--hair-strong)}
+.btn-secondary:hover{background:#dcf1ee}
+.btn-tertiary{background:transparent;color:var(--primary);font-weight:600}
+.btn-tertiary:hover{background:var(--subtle)}
+.btn-destructive{background:linear-gradient(135deg,var(--error),#a32b2b);color:#fff;
+  box-shadow:0 10px 26px -10px rgba(193,59,59,.4)}
+.btn:disabled{background:var(--muted);color:#a9a9a9;box-shadow:none;cursor:not-allowed;border-color:transparent}
+.btn.md{height:48px;font-size:15px}
+.btn.sm{height:38px;font-size:13px;width:auto;padding:0 18px;border-radius:13px}
+/* sheen sweeps once on the primary action of a screen */
+.btn-accent::after,.btn-primary::after{content:'';position:absolute;top:0;bottom:0;width:44%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);
+  transform:translateX(-180%);animation:sheen 4.6s var(--ease) 1.1s infinite}
+@keyframes sheen{0%{transform:translateX(-180%)}22%,100%{transform:translateX(340%)}}
+
+/* ---------- surfaces ---------- */
+.card{background:var(--surface);
+  border:1px solid var(--hair);border-radius:var(--r-l);padding:18px;position:relative;overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,30,28,.04);flex-shrink:0}
+.card.tap{cursor:pointer;transition:transform .3s var(--spring),border-color .3s var(--ease),box-shadow .3s}
+.card.tap:hover{transform:translateY(-3px);border-color:var(--hair-strong);box-shadow:0 18px 34px -22px rgba(15,92,86,.35)}
+.card.tap:active{transform:scale(.985)}
+
+.row{display:flex;align-items:center;gap:13px;padding:13px 14px;width:100%;text-align:left;
+  border-radius:var(--r-m);background:var(--subtle);border:1px solid transparent;
+  transition:background .22s var(--ease),border-color .22s,transform .22s var(--spring)}
+.row.tap{cursor:pointer}
+.row.tap:hover{background:var(--primary-subtle);border-color:var(--hair)}
+.row.tap:active{transform:scale(.985)}
+.row .rt{flex:1;min-width:0}
+.row .rt b{display:block;font-size:15px;font-weight:600}
+.row .rt span{display:block;font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+.row .rv{font-size:14px;font-weight:600;color:var(--primary);white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .chev{color:var(--ink-3);flex:0 0 auto;transition:transform .25s var(--spring)}
+.row.tap:hover .chev{transform:translateX(4px);color:var(--primary)}
+.dot{width:40px;height:40px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;
+  background:var(--primary-subtle);border:1px solid var(--hair);color:var(--primary)}
+.dot svg{width:20px;height:20px}
+.dot.warm{background:var(--accent-subtle);border-color:#f3d9cc;color:var(--accent)}
+
+/* ---------- alerts / badges ---------- */
+.alert{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;border-radius:var(--r-m);
+  font-size:13px;line-height:1.5;border:1px solid;position:relative;overflow:hidden;flex-shrink:0}
+.alert svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+.alert.info{background:var(--info-subtle);border-color:var(--info-border);color:var(--info)}
+.alert.success{background:var(--success-subtle);border-color:var(--success-border);color:var(--success)}
+.alert.warning{background:var(--warning-subtle);border-color:var(--warning-border);color:var(--warning)}
+.alert.error{background:var(--error-subtle);border-color:var(--error-border);color:var(--error)}
+.badge{display:inline-flex;align-items:center;gap:6px;height:27px;padding:0 11px;border-radius:999px;
+  font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;border:1px solid}
+.badge.success{background:var(--success-subtle);color:var(--success);border-color:var(--success-border)}
+.badge.warning{background:var(--warning-subtle);color:var(--warning);border-color:var(--warning-border)}
+.badge.error{background:var(--error-subtle);color:var(--error);border-color:var(--error-border)}
+.badge.neutral{background:var(--subtle);color:var(--ink-2);border-color:var(--hair)}
+
+/* ---------- chips ---------- */
+.chips{display:flex;gap:9px;flex-wrap:wrap}
+.chip{height:40px;padding:0 16px;border-radius:14px;border:1px solid var(--hair-strong);
+  font-size:14px;font-weight:600;color:var(--ink-2);background:var(--surface);
+  display:inline-flex;align-items:center;transition:all .25s var(--ease)}
+.chip:hover{color:var(--ink);border-color:var(--primary)}
+.chip[aria-pressed="true"]{border-color:transparent;color:#fff;
+  background:linear-gradient(135deg,var(--primary),var(--primary-hover));
+  box-shadow:0 6px 18px -6px var(--primary-glow)}
+.chip:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+
+/* ---------- tab bar ---------- */
+.tabbar{height:66px;flex:0 0 auto;display:flex;position:relative;z-index:3;padding:0 6px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(22px);border-top:1px solid var(--hair)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  font-size:10px;font-weight:600;color:var(--ink-3);position:relative;transition:color .25s var(--ease)}
+.tab svg{width:23px;height:23px;transition:transform .35s var(--spring)}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-current="page"]{color:var(--primary)}
+.tab[aria-current="page"] svg{transform:translateY(-2px) scale(1.08)}
+.tab[aria-current="page"]::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:34px;height:2px;border-radius:2px;background:var(--primary);box-shadow:0 0 14px 2px var(--primary-glow);
+  animation:tabIn .45s var(--spring)}
+@keyframes tabIn{from{width:0;opacity:0}to{width:34px;opacity:1}}
+.homeind{height:30px;flex:0 0 auto;display:grid;place-items:center;position:relative;z-index:3}
+.homeind i{width:138px;height:5px;border-radius:3px;background:rgba(26,26,26,.16);display:block}
+
+/* ---------- confidence ring ---------- */
+.confring{display:flex;align-items:center;gap:18px;padding:18px;border-radius:var(--r-l);
+  border:1px solid var(--hair);background:var(--primary-subtle)}
+.confring.low{border-color:var(--error-border);background:var(--error-subtle)}
+.confring.medium{border-color:var(--warning-border);background:var(--warning-subtle)}
+.confring svg{width:88px;height:88px;flex:0 0 auto;transform:rotate(-90deg)}
+.confring .track{stroke:var(--muted)}
+.confring .prog{stroke-linecap:round;transition:stroke-dashoffset 1.1s var(--ease)}
+.confring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:'Sora',sans-serif;
+  font-size:21px;font-weight:600;letter-spacing:-.03em;white-space:nowrap}
+.confring .ringwrap{position:relative;width:88px;height:88px;flex:0 0 auto}
+.confring .meta b{display:block;font-size:15px;font-weight:600;margin-bottom:5px}
+.confring .meta span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+
+/* ---------- fit scale ---------- */
+.fit{display:flex;flex-direction:column;gap:8px}
+.fit-scale{display:flex;gap:4px;height:9px}
+.fit-scale i{flex:1;border-radius:999px;background:var(--muted);display:block;
+  transform-origin:center;transition:all .4s var(--spring)}
+.fit-scale i.on{transform:scaleY(1.5)}
+.fit-cap{font-size:13px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+.fit-cap svg{flex:0 0 auto;width:14px;height:14px}
+
+/* ---------- data readout ---------- */
+.stats{display:flex;gap:8px}
+.stat{flex:1;min-width:0}
+.stat.hero{flex:1.3}
+.stat .lbl{font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase}
+.stat .val{font-family:'Sora',sans-serif;font-size:24px;font-weight:600;letter-spacing:-.045em;margin-top:4px;
+  color:var(--ink);font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
+.stat .val u{text-decoration:none;font-size:12px;font-weight:500;color:var(--ink-3);margin-left:3px;letter-spacing:0}
+.stat.hero .val{font-size:31px;color:var(--primary)}
+
+.sizehero{font-family:'Sora',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1;
+  color:var(--primary)}
+
+/* ---------- product art ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pcard{text-align:left;display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:transform .3s var(--spring)}
+.pcard:hover{transform:translateY(-4px)}
+.pcard:active{transform:scale(.97)}
+.pimg{aspect-ratio:8/5;border-radius:var(--r-m);position:relative;overflow:hidden;
+  border:1px solid var(--hair);display:grid;place-items:center;background:var(--subtle)}
+.pimg svg{width:92%;height:92%}
+.pimg .shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.55) 50%,transparent 60%);
+  transform:translateX(-100%);transition:transform .8s var(--ease)}
+.pcard:hover .pimg .shine{transform:translateX(100%)}
+.pcard .pb{font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--ink-3)}
+.pcard .pn{font-size:13.5px;font-weight:600;line-height:1.35}
+.pcard .pp{font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pcard.out .pimg{opacity:.45;filter:grayscale(.7)}
+
+.tile{display:flex;flex-direction:column;padding:0;overflow:hidden;
+  border:1px solid var(--hair);border-top:3px solid var(--hair-strong);border-radius:var(--r-l);
+  cursor:pointer;text-align:left;background:var(--surface);box-shadow:0 1px 2px rgba(20,30,28,.04);
+  transition:transform .3s var(--spring),border-color .3s,box-shadow .3s,opacity .3s;flex-shrink:0}
+.tile:hover{transform:translateY(-4px);border-color:var(--hair-strong);box-shadow:0 20px 36px -22px rgba(15,92,86,.32)}
+.tile:active{transform:scale(.98)}
+.tile b{font-size:15.5px;letter-spacing:-.01em}
+.tile span{font-size:12px;color:var(--ink-3)}
+.tile-media{position:relative;aspect-ratio:8/5;display:grid;place-items:center;
+  background:var(--subtle);border-bottom:1px solid var(--hair)}
+.tile-media::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(65% 65% at 50% 38%,rgba(255,255,255,.9),transparent 72%);pointer-events:none}
+.tile-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.tile-badge{position:absolute;top:8px;right:8px;height:23px;padding:0 9px;font-size:11px}
+.tile-sub{display:inline-flex;align-items:center;gap:5px}
+.tile-sub svg{flex:0 0 auto;width:12px;height:12px;opacity:.55}
+.tile.dim{opacity:.7}
+.tile.dim:hover{transform:none;box-shadow:0 1px 2px rgba(20,30,28,.04)}
+.tile.dim .tile-media{filter:grayscale(.35)}
+.tile.tier-success{border-top-color:var(--success)}
+.tile.tier-success .tile-media{background:var(--success-subtle)}
+.tile.tier-warning{border-top-color:var(--warning)}
+.tile.tier-warning .tile-media{background:var(--warning-subtle)}
+.tile.tier-error{border-top-color:var(--error)}
+.tile.tier-error .tile-media{background:var(--error-subtle)}
+.tile.tier-neutral{border-top-color:var(--hair-strong)}
+.card.tier-success{border-left:3px solid var(--success)}
+.card.tier-warning{border-left:3px solid var(--warning)}
+.card.tier-error{border-left:3px solid var(--error)}
+.card.tier-neutral{border-left:3px solid var(--hair-strong)}
+.mono{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+  font-family:'Sora',sans-serif;font-size:17px;font-weight:600;color:#fff}
+.brandmark{display:inline-flex;align-items:center;justify-content:center;border-radius:13px;
+  padding:0 11px;flex:0 0 auto;white-space:nowrap;font-family:'Sora',sans-serif;line-height:1;
+  position:relative;z-index:1}
+.brandmark.bordered{border:1px solid var(--hair-strong)}
+.brandmark.icon{padding:0;background:#fff;box-shadow:0 6px 16px -6px rgba(20,30,28,.22)}
+.brandmark.icon svg{display:block}
+
+/* ---------- inputs ---------- */
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.field input{height:56px;border-radius:var(--r-m);border:1px solid var(--hair-strong);
+  background:var(--subtle);padding:0 16px;font-size:16px;color:var(--ink);width:100%;
+  transition:border-color .25s,box-shadow .25s}
+.field input::placeholder{color:var(--ink-3)}
+.field input:focus{border-color:var(--primary);outline:none;background:#fff;box-shadow:0 0 0 4px var(--primary-subtle)}
+.field.err input{border-color:var(--error)}
+.field .msg{font-size:12px;color:var(--error);font-weight:600}
+.phone-wrap{display:flex;gap:9px}
+.phone-wrap .cc{height:56px;display:flex;align-items:center;padding:0 15px;border:1px solid var(--hair-strong);
+  border-radius:var(--r-m);font-size:16px;font-weight:600;background:var(--subtle);flex:0 0 auto}
+.otp{display:flex;gap:9px;justify-content:space-between}
+.otp input{width:50px;height:62px;text-align:center;font-family:'Sora',sans-serif;font-size:24px;font-weight:600;
+  border-radius:var(--r-m);border:1px solid var(--hair-strong);background:var(--subtle);color:var(--ink)}
+.otp input:focus{border-color:var(--primary);outline:none;background:#fff;box-shadow:0 0 0 4px var(--primary-subtle)}
+.otp.err input{border-color:var(--error);animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.opt{display:flex;gap:13px;align-items:center;padding:15px;border:1px solid var(--hair);
+  border-radius:var(--r-m);cursor:pointer;text-align:left;width:100%;background:var(--subtle);
+  transition:all .25s var(--ease)}
+.opt:hover{border-color:var(--hair-strong)}
+.opt[aria-checked="true"]{border-color:var(--primary);background:var(--primary-subtle);
+  box-shadow:0 10px 24px -18px var(--primary-glow)}
+.opt .rad{width:21px;height:21px;border-radius:50%;border:2px solid var(--hair-strong);flex:0 0 auto;
+  display:grid;place-items:center;transition:border-color .25s}
+.opt[aria-checked="true"] .rad{border-color:var(--primary)}
+.opt[aria-checked="true"] .rad::after{content:'';width:11px;height:11px;border-radius:50%;background:var(--primary);
+  box-shadow:0 0 10px var(--primary-glow);animation:pop .3s var(--spring)}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.opt .ot{flex:1}
+.opt .ot b{display:block;font-size:15px;font-weight:600}
+.opt .ot span{display:block;font-size:12px;color:var(--ink-3);margin-top:3px}
+.switch{width:50px;height:30px;border-radius:999px;background:var(--muted);position:relative;
+  flex:0 0 auto;transition:background .3s var(--ease)}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .35s var(--spring)}
+.switch[aria-checked="true"]{background:linear-gradient(135deg,var(--primary),var(--primary-hover))}
+.switch[aria-checked="true"]::after{transform:translateX(20px)}
+
+/* ---------- camera / scan ---------- */
+.cam{position:absolute;inset:0;overflow:hidden;background:#04100E}
+.cam canvas{position:absolute;inset:0;width:100%;height:100%}
+.cam-vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(70% 50% at 50% 45%,transparent 40%,rgba(0,0,0,.72) 100%)}
+.cam-msg{position:absolute;left:50%;bottom:176px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;
+  max-width:calc(100% - 40px);white-space:normal;text-align:left;line-height:1.35;
+  background:rgba(4,16,14,.72);backdrop-filter:blur(16px);border:1px solid var(--hair);
+  color:var(--ink);padding:11px 17px;border-radius:22px;font-size:13px;font-weight:600;
+  animation:lift .45s var(--ease)}
+.cam-msg svg{width:17px;height:17px;flex:0 0 auto}
+.cam-msg.bad{border-color:rgba(255,95,109,.4);color:#FF8A94}
+.cam-msg.good{border-color:var(--hair-strong);color:var(--primary)}
+.shutter{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);width:76px;height:76px;
+  border-radius:50%;display:grid;place-items:center;border:2px solid rgba(255,255,255,.28);
+  transition:transform .25s var(--spring)}
+.shutter i{width:60px;height:60px;border-radius:50%;display:block;
+  background:linear-gradient(140deg,var(--primary),var(--primary-hover));
+  box-shadow:0 0 30px -4px var(--primary-glow);transition:transform .18s var(--spring)}
+.shutter:hover{transform:translateX(-50%) scale(1.05)}
+.shutter:active i{transform:scale(.85)}
+.shutter:disabled{opacity:.35;cursor:not-allowed}
+.shutter:disabled i{background:rgba(255,255,255,.3);box-shadow:none}
+.shutter::before{content:'';position:absolute;inset:-9px;border-radius:50%;border:1px solid var(--hair-strong);
+  animation:pulse 2.4s var(--ease) infinite}
+.shutter:disabled::before{display:none}
+@keyframes pulse{0%{transform:scale(1);opacity:.9}70%{transform:scale(1.22);opacity:0}100%{opacity:0}}
+.cam-top{position:absolute;top:58px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;z-index:4}
+.cam-top button{font-size:15px;font-weight:600;color:var(--ink-2);padding:8px}
+.cam-pill{font-size:11px;font-weight:700;letter-spacing:.1em;background:rgba(4,16,14,.6);
+  border:1px solid var(--hair);padding:7px 13px;border-radius:999px;color:var(--primary);text-transform:uppercase;
+  backdrop-filter:blur(12px)}
+
+/* ---------- processing ---------- */
+.proc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:26px;padding:0 34px;text-align:center;background:#0B1F1B}
+.proc canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.75}
+.proc .inner{position:relative;z-index:2;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px}
+.proc h2{font-family:'Sora',sans-serif;font-size:24px;font-weight:600;letter-spacing:-.035em}
+.proc .bar{width:100%;height:3px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden}
+.proc .bar i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--primary),#7BF0DC);box-shadow:0 0 14px var(--primary-glow);transition:width .3s linear}
+.proc .step{font-size:13px;color:var(--ink-2);min-height:20px;font-variant-numeric:tabular-nums}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;background:rgba(2,8,7,.68);backdrop-filter:blur(8px);
+  display:flex;align-items:flex-end;animation:fadein .25s var(--ease);z-index:20}
+.sheet{width:100%;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:12px 18px 30px;
+  background:linear-gradient(180deg,#ffffff,#fafaf9);
+  border-top:1px solid var(--hair-strong);
+  box-shadow:0 -20px 60px rgba(0,0,0,.14);
+  display:flex;flex-direction:column;gap:14px;animation:rise .42s var(--spring)}
+.sheet .handle{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin:0 auto 8px}
+@keyframes rise{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ---------- toast ---------- */
+.toasts{position:absolute;left:18px;right:18px;bottom:104px;display:flex;flex-direction:column;gap:9px;
+  z-index:40;pointer-events:none}
+.toast{display:flex;gap:11px;align-items:center;padding:13px 15px;border-radius:var(--r-m);
+  font-size:13px;font-weight:600;animation:toastIn .45s var(--spring);backdrop-filter:blur(18px);
+  background:rgba(20,28,26,.94);border:1px solid rgba(255,255,255,.08);color:#fff;
+  box-shadow:0 16px 34px -14px rgba(0,0,0,.4)}
+.toast svg{width:18px;height:18px;flex:0 0 auto;color:#7BE0D2}
+.toast.success{border-color:rgba(123,224,210,.3)}
+.toast.error{border-color:rgba(255,138,148,.35)}
+.toast.error svg{color:#FF8A94}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px) scale(.94)}to{opacity:1;transform:none}}
+
+/* ---------- screen transitions ---------- */
+.screen.enter{animation:pushIn .42s var(--ease)}
+.screen.enter-back{animation:pushBack .42s var(--ease)}
+.screen.enter-fade{animation:zoomIn .45s var(--ease)}
+@keyframes pushIn{from{opacity:0;transform:translateX(34px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes pushBack{from{opacity:0;transform:translateX(-30px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes zoomIn{from{opacity:0;transform:scale(1.035)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* ---------- side panel ----------
+   Deliberately a fixed dark console regardless of the app's own theme —
+   it's tool chrome for reviewing the prototype, not part of the product. */
+.panel{width:320px;flex:0 0 auto;color:#b7c0bd;font-size:13px;position:sticky;top:30px;z-index:1;
+  display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 60px);overflow-y:auto;
+  padding-right:6px;scrollbar-width:thin}
+.panel h1{font-family:'Sora',sans-serif;font-size:23px;font-weight:600;color:#f2f4f3;letter-spacing:-.04em}
+.panel h1 b{background:linear-gradient(100deg,#3fc7b3,#e6875f);-webkit-background-clip:text;
+  background-clip:text;color:transparent;font-weight:600}
+.panel h1 small{display:block;font-size:12px;font-weight:400;color:#7d8985;letter-spacing:0;margin-top:5px;line-height:1.5}
+.pbox{background:#1c2321;border:1px solid #2b332f;border-radius:var(--r-l);padding:16px}
+.pbox h3{font-size:10px;font-weight:700;letter-spacing:.16em;color:#7d8985;text-transform:uppercase;margin-bottom:12px}
+.pbox .prow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;font-size:12.5px}
+.pbox .prow b{color:#f2f4f3;font-variant-numeric:tabular-nums;font-weight:600}
+.pbtn{background:#232b28;color:#c3ccc9;border-radius:13px;padding:11px 13px;font-size:12.5px;
+  font-weight:600;text-align:left;width:100%;border:1px solid #2f3835;
+  transition:all .22s var(--ease)}
+.pbtn:hover{background:#2a3330;border-color:#3fc7b3;color:#f2f4f3;transform:translateX(3px)}
+.pbtn.on{background:linear-gradient(135deg,#3fc7b3,#1e8b7a);border-color:transparent;color:#04120f}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.flowlist{display:flex;flex-direction:column;gap:7px}
+.panel .hint{color:#7d8985;line-height:1.55;font-size:11.5px;margin-top:10px}
+.slider{width:100%;accent-color:#3fc7b3;height:3px;margin:4px 0 2px}
+@media (max-width:1140px){
+  body{flex-direction:column;align-items:center}
+  .panel{width:390px;position:static;max-height:none}
+  .device{position:relative;top:auto}
+}
+
+/* motion toggle from the control panel */
+body.calm *,body.calm *::before,body.calm *::after{
+  animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+
+
+/* ---------- web delivery: embed + mobile + RTL ---------- */
+.demo-bar{display:flex;gap:10px;align-items:flex-start;background:#1c2321;border:1px solid #3a2f22;border-radius:16px;
+  padding:12px 14px;font-size:12px;line-height:1.5;color:#e9c9a8}
+.demo-bar b{color:#f6dcc0}
+.panel .toplinks{display:flex;gap:8px;flex-wrap:wrap}
+.panel .toplinks a,.panel .toplinks button{flex:1;text-align:center;text-decoration:none;background:#232b28;color:#c3ccc9;
+  border:1px solid #2f3835;border-radius:12px;padding:9px 10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.panel .toplinks a:hover,.panel .toplinks button:hover{border-color:#3fc7b3;color:#f2f4f3}
+.panel .toplinks .on{background:linear-gradient(135deg,#3fc7b3,#1e8b7a);color:#04120f;border-color:transparent}
+body{background:#15201e}
+.panel-toggle,.panel-close{display:none}
+
+/* embedded inside the landing page phone frame: device only */
+body.embed{padding:0;background:#fff;display:block;overflow:hidden}
+body.embed .panel,body.embed .panel-toggle{display:none !important}
+body.embed .device{width:390px;height:869px;border-radius:0;box-shadow:none;position:relative;top:0}
+
+/* phones: the app becomes the whole screen; demo controls live in a drawer */
+@media (max-width:560px){
+  body:not(.embed){padding:0;display:block;background:#fff}
+  body:not(.embed) .device{position:fixed;inset:0;width:100%;height:100%;height:100dvh;border-radius:0;box-shadow:none;top:0}
+  body:not(.embed) .panel{position:fixed;inset:auto 0 0 0;width:100%;max-height:82dvh;z-index:60;background:#121917;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;transform:translateY(105%);
+    transition:transform .35s cubic-bezier(.16,.84,.28,1);box-shadow:0 -20px 50px rgba(0,0,0,.4)}
+  body.panel-open .panel{transform:none}
+  .panel-toggle{display:flex;align-items:center;gap:7px;position:fixed;z-index:55;top:calc(10px + env(safe-area-inset-top));
+    inset-inline-end:12px;background:#121917;color:#e7efed;border:1px solid #2f3835;border-radius:999px;padding:9px 13px;
+    font-size:12px;font-weight:700;box-shadow:0 10px 24px rgba(0,0,0,.25);opacity:.92}
+  .panel-toggle svg{width:15px;height:15px}
+  .panel-close{display:block;position:absolute;top:12px;inset-inline-end:14px;color:#9fb0ac;font-size:13px;font-weight:600;padding:6px}
+  body.panel-open .panel-toggle{display:none}
+  body:not(.embed) .statusbar>*{visibility:hidden}
+}
+
+/* Arabic: one family, no tracking (tracking breaks letter joining), mirrored direction cues */
+.device[dir=rtl] *, .panel[dir=rtl] *{font-family:'IBM Plex Sans Arabic',sans-serif !important;letter-spacing:0 !important}
+.device[dir=rtl] .statusbar{direction:ltr}
+.device[dir=rtl] .row,.device[dir=rtl] .opt,.device[dir=rtl] .pcard,.device[dir=rtl] .tile,.device[dir=rtl] .cam-msg{text-align:right}
+.device[dir=rtl] .chev svg,.device[dir=rtl] [data-act="back"] svg{transform:scaleX(-1)}
+.device[dir=rtl] .row.tap:hover .chev{transform:translateX(-4px)}
+.device[dir=rtl] .tile-badge{right:auto;left:8px}
+.device[dir=rtl] .switch::after{left:auto;right:3px}
+.device[dir=rtl] .switch[aria-checked="true"]::after{transform:translateX(-20px)}
+.device[dir=rtl] .phone-wrap,.device[dir=rtl] .otp{direction:ltr}
+.device[dir=rtl] .stat .val,.device[dir=rtl] .sizehero,.device[dir=rtl] .confring .num{direction:ltr;unicode-bidi:isolate}
+.device[dir=rtl] .stat .val u{margin-left:3px}
+.device[dir=rtl] h2.title{line-height:1.35}
+.device[dir=rtl] .field label,.device[dir=rtl] .stat .lbl{font-size:12px}
+.device[dir=rtl] .card.tier-success,.device[dir=rtl] .card.tier-warning,.device[dir=rtl] .card.tier-error,.device[dir=rtl] .card.tier-neutral{border-left-width:1px;border-right-width:3px}
+.device[dir=rtl] .card.tier-success{border-right-color:var(--success)}
+.device[dir=rtl] .card.tier-warning{border-right-color:var(--warning)}
+.device[dir=rtl] .card.tier-error{border-right-color:var(--error)}
+.device[dir=rtl] .card.tier-neutral{border-right-color:var(--hair-strong)}
+.device[dir=rtl] .card.tier-success,.device[dir=rtl] .card.tier-warning,.device[dir=rtl] .card.tier-error,.device[dir=rtl] .card.tier-neutral{border-left-color:var(--hair)}
+.panel[dir=rtl] .pbtn{text-align:right}
+.panel[dir=rtl] .pbtn:hover{transform:translateX(-3px)}
+
+</style>
+</head>
+<body>
+<main class="device" id="device" aria-label="tAIlored app"></main>
+<aside class="panel" id="panel" aria-label="Demo controls"></aside>
+<button class="panel-toggle" id="panelToggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span id="panelToggleLbl">Demo controls</span></button>
+<script>
+/* Arabic strings for the prototype. Keys are the English source text. */
+const T_EXACT = {
+  // navigation & chrome
+  'Home':'الرئيسية','Measure':'القياس','Sizes':'المقاسات','Shop':'المتجر','You':'حسابي','Back':'رجوع',
+  'Cart':'السلة','Checkout':'إتمام الطلب','Capture':'التقاط','Close':'إغلاق','Cancel':'إلغاء','Done':'تم','Skip':'تخطَّ',
+  'Continue':'متابعة','Brands':'الماركات','Size':'المقاس','Account':'الحساب','Orders':'الطلبات','Language':'اللغة',
+  'English':'English','Guest':'ضيف','None yet':'لا يوجد بعد','none':'لا يوجد','Hatem G.':'حاتم غ.',
+
+  // home
+  'Every brand sizes you':'كل ماركة تقيس قدمك','differently.':'بطريقة مختلفة.',
+  'One scan. We translate your feet into the size each brand actually makes.':'فحص واحد، ونحوّل قياس قدميك إلى المقاس الفعلي في كل ماركة.',
+  'Depth scan':'فحص ثلاثي الأبعاد','Length, width and arch in under 30 seconds':'الطول والعرض والقوس في أقل من 30 ثانية',
+  'On device':'على الجهاز','Scan my feet':'افحص قدميّ','Create an account':'أنشئ حسابًا',
+  'You are browsing as a guest. Measurements stay on this phone until you create an account.':'أنت تتصفح كضيف. تبقى القياسات على هذا الهاتف حتى تنشئ حسابًا.',
+  'Your size profile':'ملف مقاساتك','Best match':'الأنسب لك','All brand sizes':'مقاساتك في كل الماركات',
+  'Measurement history':'سجل القياسات','Re-scan my feet':'أعد فحص قدميّ',
+  'Length':'الطول','Width':'العرض','Arch':'القوس',
+
+  // auth
+  'What’s your number?':'ما رقم هاتفك؟','We send a 6-digit code. No password to forget.':'نرسل لك رمزًا من 6 أرقام. لا كلمة مرور لتنساها.',
+  'Mobile number':'رقم الموبايل','Egyptian numbers in this build. Any 10–11 digits will do.':'أرقام مصرية فقط في هذه النسخة. أي 10 أو 11 رقمًا تكفي.',
+  'Send code':'أرسل الرمز','Try again shortly':'حاول بعد قليل','Continue as guest':'تابع كضيف',
+  'By continuing you agree to the Terms and Privacy Policy.':'بالمتابعة، أنت توافق على الشروط وسياسة الخصوصية.',
+  'Enter the code':'أدخل الرمز','Verify':'تحقّق','Resend code':'أعد إرسال الرمز','Incorrect code.':'الرمز غير صحيح.',
+  'That code is incorrect.':'هذا الرمز غير صحيح.','Enter a valid Egyptian mobile number.':'أدخل رقم موبايل مصريًا صحيحًا.',
+  'Locked for 30 seconds. That is the rate limit in your auth spec, working.':'تم الإيقاف 30 ثانية. هذا هو حد المحاولات المحدد في مواصفات تسجيل الدخول.',
+  'What should we call you?':'بماذا نناديك؟','Used on your orders and nowhere else.':'يُستخدم في طلباتك فقط، ولا مكان غيرها.',
+  'Name':'الاسم','Create account':'إنشاء الحساب','Your guest measurement will move across automatically.':'سينتقل قياسك كضيف إلى الحساب تلقائيًا.',
+
+  // scan
+  'Three steps,':'ثلاث خطوات،','thirty seconds.':'ثلاثون ثانية.',
+  'Accuracy comes from a hard floor and good light. You control both on the next screen.':'الدقة تأتي من أرضية صلبة وإضاءة جيدة. تتحكم في الاثنين في الشاشة التالية.',
+  'Find a hard, flat floor':'اختر أرضية صلبة ومستوية','Carpet swallows the edge of your foot':'السجاد يُخفي حافة قدمك',
+  'Add a reference object':'أضف شيئًا معروف المقاس','Bank card, A4 sheet or a 1 EGP coin':'بطاقة بنكية، أو ورقة A4، أو عملة جنيه',
+  'Point and hold':'وجّه الهاتف وثبّته','Both feet, captured one at a time':'القدمان، كل واحدة على حدة',
+  'Frames are processed on the device and discarded once the measurement is saved.':'تُعالج الصور على الجهاز وتُحذف فور حفظ القياس.',
+  'Start scan':'ابدأ الفحص',
+  'Allow camera access':'اسمح باستخدام الكاميرا',
+  'The camera is how we measure. Frames never leave the phone and are deleted the moment the measurement is saved.':'نقيس عبر الكاميرا. الصور لا تغادر هاتفك وتُحذف لحظة حفظ القياس.',
+  'Allow camera':'اسمح بالكاميرا','Not now':'ليس الآن',
+  'Scanning needs':'الفحص يحتاج','the camera.':'إلى الكاميرا.',
+  'Turn camera access on in settings, or tell us the size you normally wear and we will map it across brands at lower confidence.':'فعّل الكاميرا من الإعدادات، أو أخبرنا بمقاسك المعتاد وسنحوّله إلى باقي الماركات بثقة أقل.',
+  'Camera permission is currently blocked.':'إذن الكاميرا محظور حاليًا.','Open settings':'افتح الإعدادات','Enter my size manually':'أدخل مقاسي يدويًا',
+  'Pick a scale reference':'اختر مرجعًا للقياس',
+  'A known size is what turns pixels into millimetres. The coin is smallest, so it forgives the least.':'المقاس المعروف هو ما يحوّل البكسلات إلى مليمترات. العملة هي الأصغر، لذا هامش الخطأ معها أقل.',
+  'Bank card':'بطاقة بنكية','A4 sheet':'ورقة A4','1 EGP coin':'عملة جنيه',
+  '85.6 × 53.98 mm — most accurate':'85.6 × 53.98 مم، الأدق',
+  '210 × 297 mm — good for wide feet':'210 × 297 مم، مناسبة للقدم العريضة',
+  '25 mm — needs bright light':'25 مم، تحتاج إضاءة قوية',
+  'Floor surface':'نوع الأرضية','Hard floor':'أرضية صلبة','Carpet':'سجاد',
+  'Lay the object flat beside your foot, not on top of it.':'ضع الشيء مسطحًا بجانب قدمك، وليس فوقها.',
+  'Too dark — find brighter light':'الإضاءة ضعيفة، ابحث عن مكان أكثر إضاءة','Hold the phone steadier':'ثبّت الهاتف أكثر',
+  'Right foot detected — hold still':'تم رصد القدم اليمنى، اثبت','Left foot detected — hold still':'تم رصد القدم اليسرى، اثبت',
+  'Right · 1 of 2':'اليمنى، 1 من 2','Left · 2 of 2':'اليسرى، 2 من 2',
+  'Building your foot model':'نبني نموذج قدمك','Detecting outline':'نحدد الحواف','Detecting foot outline':'نحدد حواف القدم',
+  'Calibrating against bank card':'نعاير على البطاقة البنكية','Calibrating against a4 sheet':'نعاير على ورقة A4',
+  'Calibrating against 1 egp coin':'نعاير على عملة الجنيه','Correcting camera perspective':'نصحح زاوية الكاميرا',
+  'Measuring length and width':'نقيس الطول والعرض','Scoring confidence':'نحسب نسبة الثقة',
+
+  // results
+  'Measured.':'تم القياس.','Not confident enough.':'الثقة غير كافية.','Scan confidence':'نسبة الثقة',
+  'Above the 80% threshold. Recommendations are ready.':'أعلى من حد 80%. التوصيات جاهزة.',
+  'Save and see my sizes':'احفظ واعرض مقاساتي','View full measurements':'اعرض القياسات كاملة',
+  'Scan again':'افحص مرة أخرى','Use this result anyway':'استخدم هذه النتيجة على أي حال',
+  'Full measurements':'القياسات كاملة','Right foot':'القدم اليمنى','Left foot':'القدم اليسرى',
+  'Captured':'تاريخ القياس','Reference used':'المرجع المستخدم','Width category':'فئة العرض','Confidence':'الثقة',
+  'Narrow (B)':'ضيقة (B)','Medium (D)':'متوسطة (D)','Wide (2E)':'عريضة (2E)','Extra wide (4E)':'عريضة جدًا (4E)',
+  'Export measurements':'صدّر القياسات',
+
+  // sizes & brands
+  'No sizes yet':'لا توجد مقاسات بعد','Sizes are calculated from a scan. One scan unlocks every brand.':'تُحسب المقاسات من الفحص. فحص واحد يفتح لك كل الماركات.',
+  'Your size in every brand':'مقاسك في كل ماركة',
+  'Low-confidence scan — all confidences below are capped at 62%.':'فحص بثقة منخفضة، لذلك كل النسب أدناه لا تتجاوز 62%.',
+  'Sizing chart not verified for Egypt':'جدول المقاسات غير موثّق لمصر','Not mapped':'غير مربوطة',
+  'Scan first':'افحص أولًا','Other sizes in this brand':'مقاسات أخرى في هذه الماركة',
+  'Perfect fit':'مقاس مثالي','Snug':'ضيق قليلًا','Roomy':'واسع قليلًا',
+  'Too tight — size up':'ضيق جدًا، اختر مقاسًا أكبر','Too loose — size down':'واسع جدًا، اختر مقاسًا أصغر',
+  'Too tight':'ضيق جدًا','Too loose':'واسع جدًا',
+  'Notify me when it’s live':'أبلغني عند توفرها','Browse mapped brands':'تصفّح الماركات المربوطة',
+  'Unmapped':'غير مربوطة','Not mapped yet':'لم تُربط بعد','Scan to see your size':'افحص لترى مقاسك',
+  // catalog / product
+  'Available in my size':'المتوفر بمقاسي','Everything':'الكل','Scan for fit':'افحص لمعرفة المقاس','Size not made':'المقاس غير مُصنَّع',
+  'Why this size for me?':'لماذا هذا المقاس لي؟','Choose a size':'اختر مقاسًا',
+  // cart
+  'Your cart is empty':'سلتك فارغة','Everything you add is already matched to your scan.':'كل ما تضيفه يكون مطابقًا لفحصك مسبقًا.',
+  'Browse brands':'تصفّح الماركات','Subtotal':'المجموع الفرعي','Delivery':'التوصيل','Free':'مجاني','Total':'الإجمالي',
+  'Payment':'الدفع','Guest order':'طلب كضيف','Cash on delivery':'الدفع عند الاستلام','Pay the courier when it arrives':'ادفع للمندوب عند الوصول',
+  'Card':'بطاقة','Visa · Mastercard · Meeza':'فيزا، ماستركارد، ميزة','Transfer from your bank app':'حوّل من تطبيق البنك',
+  '6th of October City, Giza · 2–4 days':'مدينة 6 أكتوبر، الجيزة، خلال 2 إلى 4 أيام',
+  'Guest checkout works, but you will not be able to track this order after you close the app.':'يمكنك الطلب كضيف، لكن لن تستطيع تتبّع الطلب بعد إغلاق التطبيق.',
+  'Place order':'أكّد الطلب','Order placed':'تم الطلب','Rate the fit now':'قيّم المقاس الآن','Back to home':'العودة للرئيسية',
+  // feedback
+  'How did they fit?':'كيف كان المقاس؟','Submit feedback':'أرسل التقييم',
+  // profile & privacy
+  'My feet':'قدماي','Fit preference':'تفضيل المقاس','Privacy & data':'الخصوصية والبيانات','Export or delete everything':'صدّر بياناتك أو احذفها كلها',
+  'Sign out':'تسجيل الخروج','Not signed in — data lives on this phone only':'لم تسجّل الدخول، بياناتك على هذا الهاتف فقط',
+  'Create an account and your scan, sizes and orders move across with you.':'أنشئ حسابًا وسينتقل معك فحصك ومقاساتك وطلباتك.',
+  'New scan':'فحص جديد','No scans yet.':'لا توجد قياسات بعد.',
+  'How we use your data':'كيف نستخدم بياناتك','Improve my recommendations':'حسّن التوصيات لي','Uses your fit feedback only':'يعتمد على تقييمك للمقاس فقط',
+  'Anonymised size analytics':'تحليلات مقاسات مجهولة الهوية','Shared with brands, never identifiable':'تُشارك مع الماركات، ولا تكشف هويتك أبدًا',
+  'Your rights':'حقوقك','Export my data':'صدّر بياناتي','Downloads a real JSON file':'ينزّل ملف JSON حقيقيًا',
+  'Delete my measurements':'احذف قياساتي','Keeps your account and orders':'يبقى حسابك وطلباتك',
+  'Delete my account':'احذف حسابي','Removes everything permanently':'يحذف كل شيء نهائيًا',
+  'Handled under Egypt PDPL and GDPR. Requests complete within 30 days.':'وفق قانون حماية البيانات المصري وGDPR. تُنفَّذ الطلبات خلال 30 يومًا.',
+  // sheets
+  'Save this to an account?':'تحفظ هذا في حساب؟',
+  'Guest measurements live only on this phone. Create an account and your scan moves across automatically.':'قياسات الضيف تبقى على هذا الهاتف فقط. أنشئ حسابًا وسينتقل فحصك تلقائيًا.',
+  'Keep browsing as guest':'تابع التصفح كضيف',
+  'Delete your measurements?':'تحذف قياساتك؟',
+  'Size recommendations stop working until you scan again. Orders and account stay untouched.':'ستتوقف توصيات المقاس حتى تفحص من جديد. لن تتأثر طلباتك ولا حسابك.',
+  'Delete measurements':'احذف القياسات','Delete your account?':'تحذف حسابك؟',
+  'Measurements, sizes, orders and fit history are removed permanently. This cannot be undone.':'ستُحذف القياسات والمقاسات والطلبات وسجل التقييم نهائيًا، ولا يمكن التراجع.',
+  'Delete everything':'احذف كل شيء','How do you like shoes to fit?':'كيف تحب أن يكون مقاس حذائك؟','We bias every recommendation toward this.':'نميل بكل توصية نحو هذا التفضيل.',
+  // toasts
+  'Continuing as guest':'تتابع كضيف','New code sent':'أرسلنا رمزًا جديدًا','Signed out':'تم تسجيل الخروج',
+  'Manual entry is out of scope in this build':'الإدخال اليدوي غير متاح في هذه النسخة',
+  'We will alert you when your size is back':'سنبلغك عندما يتوفر مقاسك','Fit preference saved':'تم حفظ تفضيل المقاس',
+  'Measurements deleted':'تم حذف القياسات','Account deleted':'تم حذف الحساب','Data exported':'تم تصدير البيانات',
+  'Session reset':'تمت إعادة الجلسة','Measurement saved':'تم حفظ القياس','Saved with low confidence':'تم الحفظ بثقة منخفضة',
+  'Account created':'تم إنشاء الحساب','Account created · measurement migrated':'تم إنشاء الحساب ونقل القياس',
+  'Thanks — no change needed':'شكرًا، لا حاجة لأي تغيير',
+  'Start with Measure → scan':'ابدأ من القياس، ثم الفحص',
+  'Capture now — confidence will land below 80%':'التقط الآن، ستكون الثقة أقل من 80%',
+  'Pick a fit — watch the Nike offset change':'اختر تقييمًا وشاهد تعديل Nike يتغيّر',
+  // demo panel
+  'Demo controls':'لوحة التجربة','Concept demo.':'نسخة تجريبية للفكرة.',
+  'The scan is simulated and nothing is ordered or charged. Brand names belong to their owners; no affiliation.':'الفحص محاكاة، ولا يتم طلب أو دفع أي شيء. أسماء الماركات ملك لأصحابها، ولا توجد شراكة معها.',
+  'Back to the website':'العودة للموقع',
+  'Interactive prototype · 32 screens, live sizing engine, real confidence branching':'نموذج تفاعلي: 32 شاشة، ومحرّك مقاسات حي، ومسارات حقيقية حسب نسبة الثقة',
+  'Scan conditions':'ظروف الفحص','Lighting':'الإضاءة','Steadiness':'ثبات اليد','Predicted confidence':'الثقة المتوقعة',
+  'Drag these and re-scan. The point cloud thins out, the measurement error widens, and below 80% the app takes the low-confidence branch.':'حرّك المؤشرين ثم أعد الفحص. ستقل النقاط، ويزيد هامش الخطأ، وتحت 80% يأخذ التطبيق مسار الثقة المنخفضة.',
+  'Session state':'حالة الجلسة','Measurement':'القياس','Learned offsets':'التعديلات المكتسبة',
+  'Jump to a scenario':'انتقل إلى سيناريو','Happy path — scan to purchase':'المسار الأساسي: من الفحص إلى الشراء',
+  'Low-confidence scan branch':'فحص بثقة منخفضة','Camera permission denied':'رفض إذن الكاميرا',
+  'Guest gate → account migration':'من ضيف إلى حساب مع نقل البيانات','Sold out in your size':'مقاسك نفد',
+  'Unmapped brand':'ماركة غير مربوطة','Fit feedback retunes sizing':'تقييمك يعدّل المقاس','Privacy — export & delete':'الخصوصية: تصدير وحذف',
+  'Environment':'الإعدادات','Reduce motion':'تقليل الحركة','Reset session':'إعادة الجلسة'
+};
+
+const plural = (n, one, many) => (+n === 1 ? one : many);
+const T_PATTERNS = [
+  [/^([\d,]+) EGP$/, n => n + ' ج.م'],
+  [/^(\d+) brands mapped to your feet$/, n => n + ' ماركات مربوطة بمقاس قدميك'],
+  [/^(\d+) of (\d+) brands mapped to Egyptian stock$/, (a,b) => a + ' من ' + b + ' ماركات مربوطة بالمخزون المصري'],
+  [/^(\d+) orders?$/, n => n + ' ' + plural(n,'طلب','طلبات')],
+  [/^(\d+) scans? saved$/, n => n + ' ' + plural(n,'قياس محفوظ','قياسات محفوظة')],
+  [/^(\d+) scans?$/, n => n + ' ' + plural(n,'قياس','قياسات')],
+  [/^([\d,]+) similar feet$/, n => n + ' قدم مشابهة'],
+  [/^(\d+)% sure$/, n => 'ثقة ' + n + '%'],
+  [/^([\d.]+) mm · (\d+)%$/, (a,b) => a + ' مم، ' + b + '%'],
+  [/^([\d.]+) mm × ([\d.]+) mm · (.+)$/, (a,b,c) => a + ' × ' + b + ' مم، ' + (T_EXACT[c]||c)],
+  [/^(\d{4}-\d\d-\d\d) · current$/, d => d + '، الحالي'],
+  [/^Scanned (\d{4}-\d\d-\d\d)$/, d => 'آخر فحص ' + d],
+  [/^From your (\d{4}-\d\d-\d\d) scan · ([\d.]+) mm$/, (d,l) => 'من فحص ' + d + '، ' + l + ' مم'],
+  [/^Every size in this cart came from your (\d{4}-\d\d-\d\d) scan\.$/, d => 'كل المقاسات في هذه السلة من فحص ' + d + '.'],
+  [/^Accepted below the 80% threshold\. Length may be off by ±([\d.]+) mm — more than one size\.$/, e => 'تم القبول تحت حد 80%. قد يختلف الطول بمقدار ±' + e + ' مم، أي أكثر من مقاس.'],
+  [/^Below 80%\. Length could be out by ±([\d.]+) mm, which is more than one size\.$/, e => 'أقل من 80%. قد يختلف الطول بمقدار ±' + e + ' مم، وهذا أكثر من مقاس.'],
+  [/^Cause: (.+)\.$/, c => 'السبب: ' + ({
+      'the light was too low for a clean outline':'الإضاءة ضعيفة جدًا لتحديد الحواف بوضوح',
+      'camera shake blurred the edge of the foot':'اهتزاز الكاميرا جعل حافة القدم غير واضحة',
+      'the coin is small, so a few pixels of error become millimetres':'العملة صغيرة، فخطأ بسيط في البكسلات يصبح مليمترات',
+      'carpet hides where the foot actually ends':'السجاد يُخفي أين تنتهي القدم فعلًا',
+      'the reference object was only partly readable':'المرجع لم يظهر بوضوح كامل' }[c] || c) + '.'],
+  [/^Readable, but only (\d+)% confident$/, n => 'مقروء، لكن الثقة ' + n + '% فقط'],
+  [/^Add EU (.+) to cart$/, s => 'أضف مقاس EU ' + s + ' للسلة'],
+  [/^Added EU (.+) to cart$/, s => 'تمت إضافة مقاس EU ' + s + ' للسلة'],
+  [/^Fits your EU (.+)$/, s => 'يناسب مقاسك EU ' + s],
+  [/^Fits EU (.+)$/, s => 'يناسب EU ' + s],
+  [/^EU (.+) sold out$/, s => 'EU ' + s + ' نفد'],
+  [/^EU (.+) · matched to your scan$/, s => 'EU ' + s + '، مطابق لفحصك'],
+  [/^Notify me when EU (.+) is back$/, s => 'أبلغني عند توفر EU ' + s],
+  [/^This model is not produced in EU (.+)\.$/, s => 'هذا الموديل غير مُصنَّع بمقاس EU ' + s + '.'],
+  [/^This model runs narrow\. We already moved you up to EU (.+) — (\d+)% of users with your width did the same\.$/, (s,p) => 'هذا الموديل ضيق. رفعنا مقاسك إلى EU ' + s + '، وفعل ذلك ' + p + '% من المستخدمين بعرض قدمك.'],
+  [/^Roomy last\. EU (.+) accounts for it\.$/, s => 'قالب واسع، ومقاس EU ' + s + ' يراعي ذلك.'],
+  [/^Your size, EU (.+), is sold out\. The sizes left are more than 5 mm away from your foot\.$/, s => 'مقاسك EU ' + s + ' نفد. المقاسات المتبقية تبعد أكثر من 5 مم عن قدمك.'],
+  [/^Your size: EU (.+)$/, s => 'مقاسك: EU ' + s],
+  [/^You bought EU (.+)$/, s => 'اشتريت مقاس EU ' + s],
+  [/^Shop (.+) in EU (.+)$/, (b,s) => 'تسوّق ' + b + ' بمقاس EU ' + s],
+  [/^Show (.+) styles that fit$/, b => 'اعرض موديلات ' + b + ' المناسبة'],
+  [/^(.+) sizes are calculated from your measurement\.$/, b => 'مقاسات ' + b + ' تُحسب من قياسك.'],
+  [/^(.+) is not mapped yet$/, b => b + ' لم تُربط بعد'],
+  [/^We have not verified (.+) sizing against Egyptian stock\. Guessing here would be worse than saying nothing\.$/, b => 'لم نتحقق بعد من مقاسات ' + b + ' مقارنة بالمخزون المصري. التخمين هنا أسوأ من عدم قول شيء.'],
+  [/^Generic conversion suggests EU (.+), but that is not a tAIlored recommendation\.$/, s => 'التحويل العام يقترح EU ' + s + '، لكنها ليست توصية من tAIlored.'],
+  [/^Learned from ([\d,]+) users with feet like yours\.$/, n => 'مبني على ' + n + ' مستخدم لديهم أقدام مشابهة لقدميك.'],
+  [/^Adjusted ([+\-\d.]+) mm for you after your fit feedback on (.+)\.$/, (o,b) => 'عدّلنا ' + o + ' مم لك بعد تقييمك لمقاس ' + b + '.'],
+  [/^Tuned ([+\-\d.]+) mm from feedback$/, o => 'معدَّل ' + o + ' مم حسب تقييمك'],
+  [/^Nothing from (.+) is in stock in EU (.+) right now\. Switch to Everything to see the rest\.$/, (b,s) => 'لا يوجد من ' + b + ' بمقاس EU ' + s + ' حاليًا. اختر "الكل" لترى الباقي.'],
+  [/^Your feet differ by ([\d.]+) mm\. We size to the longer one, which is standard fitting practice\.$/, d => 'الفرق بين قدميك ' + d + ' مم. نختار المقاس حسب القدم الأطول، وهذه هي القاعدة المعتادة.'],
+  [/^Length changed by ([\d.]+) mm across your scans\. Feet change slowly — a big jump usually means a bad scan, not a bigger foot\.$/, d => 'تغيّر الطول ' + d + ' مم بين قياساتك. القدم تتغير ببطء، والقفزة الكبيرة غالبًا تعني فحصًا سيئًا وليس قدمًا أكبر.'],
+  [/^Order (.+) · arriving in 2–4 days\. We will ask how they fit once they land — that answer sharpens your next recommendation\.$/, id => 'الطلب ' + id + '، يصل خلال 2 إلى 4 أيام. سنسألك عن المقاس عند وصوله، وإجابتك تجعل توصيتك القادمة أدق.'],
+  [/^That code is incorrect\. (\d) attempts? left\.$/, n => 'هذا الرمز غير صحيح. ' + (+n===1 ? 'تبقّت محاولة واحدة.' : 'تبقّت ' + n + ' محاولات.')],
+  [/^Incorrect code\. (\d) attempts? left\.$/, n => 'الرمز غير صحيح. ' + (+n===1 ? 'تبقّت محاولة واحدة.' : 'تبقّت ' + n + ' محاولات.')],
+  [/^Sent to \+20 (\d*)\. Demo code is$/, p => 'أرسلنا الرمز إلى ⁦+20 ' + p + '⁩. الرمز التجريبي هو'],
+  [/^This will shift every future (.+) recommendation by ([+\-\d.]+) mm, taking your (?:.+) offset to ([+\-\d.]+) mm\.$/, (b,s,o) => 'سيُعدّل هذا كل توصيات ' + b + ' القادمة بمقدار ⁦' + s + '⁩ مم، ليصبح تعديلك في ' + b + ' ⁦' + o + '⁩ مم.'],
+  [/^Nothing to change — we will keep sizing (.+) the way we did\.$/, b => 'لا شيء يتغير، سنواصل اختيار مقاسات ' + b + ' كما هي.'],
+  [/^We will notify you when (.+) is mapped$/, b => 'سنبلغك عند ربط ' + b],
+  [/^(.+) sizing updated · offset ([+\-\d.]+) mm$/, (b,o) => 'تم تحديث مقاسات ' + b + '، التعديل ⁦' + o + '⁩ مم'],
+  [/^(.+) · EU (.+) ×(\d+)$/, (p,s,q) => p + '، EU ' + s + ' ×' + q]
+];
+
+/* ============================================================
+   0. LANGUAGE — English source strings, Arabic by lookup.
+   Screens are written in English; after every render the text
+   nodes are swapped for Arabic when Arabic is on.
+   ============================================================ */
+const QS = new URLSearchParams(location.search);
+let LANG = (function(){
+  const q = QS.get('lang'); if (q) return q === 'ar' ? 'ar' : 'en';
+  try{ const v = localStorage.getItem('tailored-lang'); if (v) return v; }catch(e){}
+  return (navigator.language||'').toLowerCase().indexOf('ar') === 0 ? 'ar' : 'en';
+})();
+/* keep sizes and dates left-to-right inside Arabic sentences */
+function iso(x){ return String(x).replace(/(EU |US |UK )?[+\-]?\d[\d.,\-\u2153\u2154]*( ?mm| ?مم)?/g, t => /[\u2153\u2154]|^EU|\d{4}-\d/.test(t) ? '\u2066'+t+'\u2069' : t); }
+const MISSING = new Set(); window.__missing = MISSING;
+function tr(str){
+  if (LANG !== 'ar' || str == null) return str;
+  const m = String(str).match(/^(\s*)([\s\S]*?)(\s*)$/);
+  const core = m[2];
+  if (!core || !/[A-Za-z]/.test(core)) return str;
+  if (Object.prototype.hasOwnProperty.call(T_EXACT, core)) return m[1] + iso(T_EXACT[core]) + m[3];
+  for (let i=0;i<T_PATTERNS.length;i++){
+    const p = T_PATTERNS[i], r = core.match(p[0]);
+    if (r) return m[1] + iso(p[1].apply(null, r.slice(1))) + m[3];
+  }
+  if (!/^(EU|US|UK)?\s?[\d.⅓⅔]+$/.test(core) && !NO_TR.has(core)) MISSING.add(core);
+  return str;
+}
+const NO_TR = new Set(['tAIlored','Nike','Adidas','New Balance','Zara','Skechers','Puma','mm','EGP','+20','9:41','InstaPay','ZARA','S','HG','HA']);
+function localize(root){
+  if (!root) return;
+  root.setAttribute('dir', LANG === 'ar' ? 'rtl' : 'ltr');
+  if (LANG !== 'ar') return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode:n =>
+    n.parentNode && /^(STYLE|SCRIPT)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(n => { const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; });
+  root.querySelectorAll('[placeholder],[aria-label]').forEach(el => {
+    ['placeholder','aria-label'].forEach(a => { if (el.hasAttribute(a)) el.setAttribute(a, tr(el.getAttribute(a))); });
+  });
+}
+function setLang(l){
+  LANG = l === 'ar' ? 'ar' : 'en';
+  try{ localStorage.setItem('tailored-lang', LANG); }catch(e){}
+  document.documentElement.lang = LANG;
+  try{ const u = new URL(location.href); u.searchParams.set('lang', LANG); history.replaceState(null,'',u); }catch(e){}
+  render('none');
+}
+document.documentElement.lang = LANG;
+if (QS.get('embed') === '1') document.body.classList.add('embed');
+
+/* ============================================================
+   1. DATA
+   ============================================================ */
+const BRANDS = {
+  nike:    { id:'nike',    name:'Nike',        allowance:22, step:0.5,  widthProfile:0.368, users:1240, mapped:true  },
+  adidas:  { id:'adidas',  name:'Adidas',      allowance:20, step:1/3,  widthProfile:0.365, users:980,  mapped:true  },
+  nb:      { id:'nb',      name:'New Balance', allowance:25, step:0.5,  widthProfile:0.380, users:410,  mapped:true  },
+  zara:    { id:'zara',    name:'Zara',        allowance:26, step:1,    widthProfile:0.362, users:96,   mapped:true  },
+  skechers:{ id:'skechers',name:'Skechers',    allowance:28, step:0.5,  widthProfile:0.390, users:520,  mapped:true  },
+  puma:    { id:'puma',    name:'Puma',        allowance:22, step:0.5,  widthProfile:0.367, users:0,    mapped:false }
+};
+
+const PRODUCTS = [
+  { id:'peg41',  brand:'nike',     name:'Air Zoom Pegasus 41', price:4850, cat:'Running',   lastBias:0,  stock:{ '42.5':4,'43':7,'43.5':5,'44':3 } },
+  { id:'rev7',   brand:'nike',     name:'Revolution 7',        price:2199, cat:'Running',   lastBias:0,  stock:{ '42.5':2,'43':9,'43.5':6,'44':4 } },
+  { id:'af1',    brand:'nike',     name:'Air Force 1 \u201907', price:5400, cat:'Lifestyle', lastBias:3.5, stock:{ '43':5,'43.5':6,'44':4 } },
+  { id:'dunk',   brand:'nike',     name:'Dunk Low Retro',      price:6100, cat:'Lifestyle', lastBias:0,  stock:{ '41':3,'42':2,'43':0,'44.5':2 } },
+  { id:'infin',  brand:'nike',     name:'React Infinity Run',  price:5650, cat:'Running',   lastBias:-1, stock:{ '42.5':3,'43':5,'43.5':4,'44':2 } },
+  { id:'ultra',  brand:'adidas',   name:'Ultraboost Light',    price:7200, cat:'Running',   lastBias:0,  stock:{ '42':3,'42\u2153':6,'42\u2154':5,'43':4 } },
+  { id:'samba',  brand:'adidas',   name:'Samba OG',            price:4300, cat:'Lifestyle', lastBias:-2, stock:{ '42':4,'42\u2153':7,'43':3 } },
+  { id:'stan',   brand:'adidas',   name:'Stan Smith',          price:3600, cat:'Lifestyle', lastBias:0,  stock:{ '42\u2153':5,'42\u2154':6,'43':4 } },
+  { id:'adizero',brand:'adidas',   name:'Adizero SL',          price:5100, cat:'Running',   lastBias:1,  stock:{ '42':2,'42\u2153':4,'43':6,'43\u2154':3 } },
+  { id:'nb327',  brand:'nb',       name:'327',                 price:4950, cat:'Lifestyle', lastBias:0,  stock:{ '42.5':3,'43':6,'43.5':4 } },
+  { id:'nb574',  brand:'nb',       name:'574 Core',            price:3800, cat:'Lifestyle', lastBias:1,  stock:{ '43':8,'43.5':5,'44':2 } },
+  { id:'nb990',  brand:'nb',       name:'990v6',                price:8200, cat:'Lifestyle', lastBias:0,  stock:{ '42.5':2,'43':4,'43.5':3,'44':2 } },
+  { id:'nb1080', brand:'nb',       name:'Fresh Foam X 1080',   price:6400, cat:'Running',   lastBias:-0.5, stock:{ '43':5,'43.5':6,'44':3 } },
+  { id:'zshoe',  brand:'zara',     name:'Leather Derby',       price:2990, cat:'Dress',     lastBias:2,  stock:{ '42':4,'43':5,'44':3 } },
+  { id:'zboot',  brand:'zara',     name:'Chelsea Boot',        price:3450, cat:'Dress',     lastBias:1,  stock:{ '42':3,'43':4,'44':2 } },
+  { id:'zcanvas',brand:'zara',     name:'Canvas Trainer',      price:1990, cat:'Lifestyle', lastBias:0,  stock:{ '42':5,'43':6,'44':4 } },
+  { id:'skarch', brand:'skechers', name:'Arch Fit Walk',       price:3450, cat:'Comfort',   lastBias:0,  stock:{ '43':6,'43.5':7,'44':4 } },
+  { id:'skmax',  brand:'skechers', name:'Max Cushioning Elite',price:4200, cat:'Comfort',   lastBias:0.5, stock:{ '43':4,'43.5':5,'44':3 } },
+  { id:'skflex', brand:'skechers', name:'GOwalk Flex',         price:2650, cat:'Comfort',   lastBias:0,  stock:{ '42.5':3,'43':5,'43.5':4 } }
+];
+
+/* How strongly a width mismatch against the brand's last moves the fit
+   verdict, and how much the user's stated fit preference shifts sizing. */
+const WIDTH_WEIGHT = 0.30;
+const IDEAL_ROOM = 1.0;   // mm of length room that reads as a perfect fit
+const FIT_PREF_SHIFT = { snug:-1.8, perfect:0, loose:1.8 };
+
+const FIT_ORDER = ['tight','snug','perfect','loose','too-loose'];
+const FIT_LABEL = {
+  'tight':'Too tight — size up', 'snug':'Snug', 'perfect':'Perfect fit',
+  'loose':'Roomy', 'too-loose':'Too loose — size down'
+};
+const FIT_VAR = { 'tight':'--fit-tight','snug':'--fit-snug','perfect':'--fit-perfect','loose':'--fit-loose','too-loose':'--fit-too-loose' };
+
+const REF_OBJECTS = {
+  card: { id:'card', name:'Bank card',  detail:'85.6 \u00d7 53.98 mm \u2014 most accurate', factor:1.00 },
+  a4:   { id:'a4',   name:'A4 sheet',   detail:'210 \u00d7 297 mm \u2014 good for wide feet', factor:0.96 },
+  coin: { id:'coin', name:'1 EGP coin', detail:'25 mm \u2014 needs bright light',        factor:0.82 }
+};
+
+/* ============================================================
+   2. STATE
+   ============================================================ */
+const initialState = () => ({
+  account:null,                 // { name, phone }  null = guest
+  measurement:null,             // { right:{L,W,arch}, left:{...}, confidence, accepted, refObj, date }
+  history:[],
+  brandOffset:{},               // learned mm adjustment per brand, from fit feedback
+  savedSizes:{},
+  cart:[],
+  orders:[],
+  pendingFeedback:null,
+  prefs:{ fit:'perfect', improveRecs:true, shareAnalytics:false },
+  scan:{ light:78, steady:82, refObj:'card', surface:'hard' },
+  cameraGranted:null,           // null = not asked, true, false
+  catalogBrand:'nike',
+  catalogFilter:'fits',
+  activeProduct:null,
+  activeBrand:'nike',
+  selectedSize:null,
+  auth:{ phone:'', code:'', attempts:0, lockedUntil:0, sentAt:0 },
+  ui:{ tab:'home', reduceMotion:false }
+});
+let S = initialState();
+
+/* ============================================================
+   3. ENGINES
+   ============================================================ */
+
+/* --- 3a. Scan confidence (BRD FR-1.2, 80% acceptance threshold) --- */
+const CONFIDENCE_THRESHOLD = 80;
+
+function computeScanConfidence(scan){
+  const ref = REF_OBJECTS[scan.refObj];
+  const surfaceFactor = scan.surface === 'hard' ? 1 : 0.88;
+  const raw = (0.46 * (scan.light/100) + 0.34 * (scan.steady/100) + 0.20)
+            * ref.factor * surfaceFactor;
+  return Math.max(28, Math.min(99, Math.round(raw * 100)));
+}
+
+/* Measurement error grows as confidence falls — this is what makes a
+   low-confidence scan genuinely unsafe to size from, not just a warning. */
+function simulateMeasurement(scan){
+  const conf = computeScanConfidence(scan);
+  const errBand = (100 - conf) * 0.22;            // mm of plausible error
+  const jitter = () => (Math.random() * 2 - 1) * errBand;
+  const L = 263 + jitter(), W = 98 + jitter() * 0.4;
+  return {
+    right:{ L:round1(L), W:round1(W), arch:round1(42 + jitter()*0.3) },
+    left: { L:round1(L - 1.4 + jitter()*0.3), W:round1(W - 0.6), arch:round1(41.5) },
+    confidence:conf, errBand:round1(errBand), accepted:conf >= CONFIDENCE_THRESHOLD,
+    refObj:scan.refObj, date:new Date().toISOString().slice(0,10)
+  };
+}
+
+/* --- 3b. Sizing engine --- */
+/* Longer foot of the pair drives the size — standard fitting practice. */
+function drivingFoot(m){ return m.right.L >= m.left.L ? m.right : m.left; }
+
+function roundToStep(v, step){ return Math.round(v / step) * step; }
+
+function sizeLabel(eu, step){
+  if (Math.abs(step - 1/3) < 0.01){
+    const whole = Math.floor(eu + 1e-6);
+    const frac = eu - whole;
+    if (frac < 0.17) return String(whole);
+    if (frac < 0.5)  return whole + '\u2153';
+    return whole + '\u2154';
+  }
+  return (Math.round(eu*2)/2).toString();
+}
+
+function recommend(brandId, m, productBias){
+  const b = BRANDS[brandId];
+  if (!b || !b.mapped) return { mapped:false, brand:b };
+  const foot = drivingFoot(m);
+  const offset = S.brandOffset[brandId] || 0;
+  const bias = productBias || 0;
+  const prefShift = FIT_PREF_SHIFT[S.prefs.fit] || 0;
+  const effectiveAllowance = b.allowance + offset + bias + prefShift;
+
+  /* width pressure: how much wider the foot is than the brand's last.
+     A wide foot needs a longer size to borrow width from — which is what
+     a human fitter does, so the engine searches neighbouring sizes too. */
+  const ratio = foot.W / foot.L;
+  const widthPressure = (ratio - b.widthProfile) * 1000;
+  const scoreAt = eu => (eu * 6.6667 - effectiveAllowance - foot.L) - widthPressure * WIDTH_WEIGHT;
+
+  const base = roundToStep((foot.L + effectiveAllowance) / 6.6667, b.step);
+  let eu = base, best = Infinity;
+  for (let k = -2; k <= 4; k++){
+    const cand = roundToStep(base + k * b.step, b.step);
+    const d = Math.abs(scoreAt(cand) - IDEAL_ROOM);
+    if (d < best){ best = d; eu = cand; }
+  }
+
+  const score = scoreAt(eu);
+  const residual = round1(eu * 6.6667 - effectiveAllowance - foot.L);
+  let fit;
+  if (score < -3.5)      fit = 'tight';
+  else if (score < -1.2) fit = 'snug';
+  else if (score <= 3.8) fit = 'perfect';
+  else if (score <= 6.5) fit = 'loose';
+  else                   fit = 'too-loose';
+
+  /* confidence: scan quality x brand data depth x how cleanly the size lands */
+  const dataConf = Math.min(1, 0.20 + Math.log10(b.users + 1) / 3.4);
+  const landing = 1 - Math.min(1, Math.abs(score - IDEAL_ROOM) / 9);
+  const scanConf = m.confidence / 100;
+  let confidence = Math.round(scanConf * dataConf * (0.55 + 0.45 * landing) * 100);
+  if (!m.accepted) confidence = Math.min(confidence, 62);   // low-confidence scan caps everything
+  confidence = Math.max(18, Math.min(97, confidence));
+
+  return {
+    mapped:true, brand:b, eu, label:sizeLabel(eu, b.step),
+    us:round1(eu - 33.5), uk:round1(eu - 34.5),
+    residual, widthPressure:round1(widthPressure), score:round1(score), fit, confidence,
+    tier: confidence >= 80 ? 'high' : confidence >= 62 ? 'medium' : 'low'
+  };
+}
+
+function allRecommendations(m){
+  return Object.keys(BRANDS).map(id => ({ id, rec:recommend(id, m) }));
+}
+
+/* --- 3c. Feedback loop (BRD FR-2.2) --- */
+/* Real learning: reported fit shifts the brand's allowance for next time. */
+const FEEDBACK_SHIFT = { 'tight':+3.5, 'snug':+1.8, 'perfect':0, 'loose':-1.8, 'too-loose':-3.5 };
+function applyFeedback(brandId, reportedFit){
+  const before = S.brandOffset[brandId] || 0;
+  const after = round1(before + FEEDBACK_SHIFT[reportedFit]);
+  S.brandOffset[brandId] = after;
+  return { before, after, changed:after !== before };
+}
+
+/* --- 3d. Stock --- */
+function stockFor(product, sizeLabelStr){
+  const s = product.stock[sizeLabelStr];
+  return s === undefined ? null : s;      // null = size not produced, 0 = sold out
+}
+function nearestAvailable(product){
+  return Object.keys(product.stock).filter(k => product.stock[k] > 0);
+}
+
+/* --- helpers --- */
+function round1(n){ return Math.round(n * 10) / 10; }
+function money(n){ return n.toLocaleString('en-US') + ' EGP'; }
+function cartTotal(){ return S.cart.reduce((a,i) => a + i.price * i.qty, 0); }
+function deliveryFee(){ return cartTotal() >= 5000 || S.cart.length === 0 ? 0 : 60; }
+
+/* ============================================================
+   4. VISUAL PRIMITIVES — "Depth Field"
+   ============================================================ */
+
+/* Gradient stops mirror the exact Semantic hex values from Figma —
+   primary teal, accent terracotta, and the success/warning/error scale. */
+const DEFS = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'
++ '<linearGradient id="gAqua" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17A894"/><stop offset="1" stop-color="#0f5c56"/></linearGradient>'
++ '<linearGradient id="gEmber" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6875f"/><stop offset="1" stop-color="#d9714e"/></linearGradient>'
++ '<linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0a94a"/><stop offset="1" stop-color="#d08f2a"/></linearGradient>'
++ '<linearGradient id="gRose" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d15f5f"/><stop offset="1" stop-color="#c13b3b"/></linearGradient>'
++ '<linearGradient id="gRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17A894"/><stop offset="1" stop-color="#0f5c56"/></linearGradient>'
++ '<linearGradient id="gRingLow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d15f5f"/><stop offset="1" stop-color="#c13b3b"/></linearGradient>'
++ '<linearGradient id="gRingMed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0a94a"/><stop offset="1" stop-color="#d08f2a"/></linearGradient>'
++ '</defs></svg>';
+
+const ICONS = {
+  home:{ f:'<path d="M4 11l8-6.5 8 6.5v8a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19z"/>', s:'<path d="M3 11.4L12 4l9 7.4"/><path d="M9.2 20.5v-5.2h5.6v5.2"/>' },
+  scan:{ f:'<rect x="4.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.6"/>', s:'<path d="M3 8V5.2A2.2 2.2 0 015.2 3H8M16 3h2.8A2.2 2.2 0 0121 5.2V8M21 16v2.8a2.2 2.2 0 01-2.2 2.2H16M8 21H5.2A2.2 2.2 0 013 18.8V16"/>' },
+  ruler:{ f:'<path d="M4.2 14.6L14.6 4.2l5.2 5.2L9.4 19.8z"/>', s:'<path d="M3.6 14.4L14.4 3.6 20.4 9.6 9.6 20.4z"/><path d="M7.6 11.2l2 2M10.8 8l2 2M14 4.8l2 2"/>' },
+  tag:{ f:'<path d="M3.6 12.6V5.4A1.8 1.8 0 015.4 3.6h7.2l8 8-7 7z"/>', s:'<path d="M3 12.4V5.2A2.2 2.2 0 015.2 3h7.2l8.6 8.6-7.2 7.2z"/><circle cx="7.6" cy="7.6" r="1.4"/>' },
+  user:{ f:'<circle cx="12" cy="8" r="3.8"/><path d="M4.6 20.6c.6-3.6 3.7-5.6 7.4-5.6s6.8 2 7.4 5.6z"/>', s:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.2 8-6.2S20 17 20 21"/>' },
+  chevron:{ s:'<path d="M9 5.5l6.5 6.5L9 18.5"/>' },
+  back:{ s:'<path d="M15 5.5L8.5 12 15 18.5"/>' },
+  check:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M7.6 12.4l2.9 2.9 5.9-6.2"/>' },
+  info:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M12 11.2v5M12 7.8h.01"/>' },
+  warn:{ f:'<path d="M12 3.4l8.8 15.6H3.2z"/>', s:'<path d="M12 9.6v4.6M12 17.4h.01"/>' },
+  error:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M14.8 9.2l-5.6 5.6M9.2 9.2l5.6 5.6"/>' },
+  cart:{ f:'<path d="M6.4 7.4h13.2l-1.8 8.2H8.2z"/>', s:'<circle cx="9.4" cy="19.6" r="1.5"/><circle cx="17.4" cy="19.6" r="1.5"/><path d="M2.6 3.6h2.6l2.8 12.4h10.2L21 7.4H6"/>' },
+  camera:{ f:'<rect x="3.4" y="7.6" width="17.2" height="12" rx="2.6"/>', s:'<path d="M3 9.2A2.2 2.2 0 015.2 7h1.6l1.5-2.3h7.4L17.2 7h1.6A2.2 2.2 0 0121 9.2v8.6A2.2 2.2 0 0118.8 20H5.2A2.2 2.2 0 013 17.8z"/><circle cx="12" cy="13.4" r="3.5"/>' },
+  shoe:{ f:'<path d="M2.6 16.4h11.2l3.4-2.8 4.2 1.4v3.2H2.6z"/>', s:'<path d="M2.6 18.2v-6.4l3.8-1 2 2h3.8l2.2 3 5.4 1.6c.9.3 1.6 1.1 1.6 2.1v.7a1 1 0 01-1 1H3.6a1 1 0 01-1-1z"/>' },
+  trash:{ f:'<path d="M6.4 7.6h11.2l-1 12.4H7.4z"/>', s:'<path d="M3.6 6.6h16.8M9.4 6.4V4.2h5.2v2.2M6 7l1 13.2h10L18 7"/>' },
+  lock:{ f:'<rect x="4.4" y="10.4" width="15.2" height="10.2" rx="2.6"/>', s:'<rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7.2a4 4 0 018 0V10"/>' },
+  download:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M12 6.8v8.4M8.4 11.8L12 15.4l3.6-3.6M7 18.4h10"/>' },
+  bolt:{ f:'<path d="M13.4 2.6L4.8 13.6h6l-1 7.8 8.6-11h-6z"/>', s:'<path d="M13 2.6L4.4 13.8h6.2l-1 7.6 8.8-11.2h-6.2z"/>' },
+  clock:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M12 6.8V12l3.4 2"/>' },
+  globe:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<path d="M3.2 12h17.6M12 3.2c2.8 3.4 2.8 14.2 0 17.6M12 3.2c-2.8 3.4-2.8 14.2 0 17.6"/>' },
+  bell:{ f:'<path d="M6.4 16.6V10.6a5.6 5.6 0 1111.2 0v6z"/>', s:'<path d="M5.4 17.2l1.2-1.6v-5a5.4 5.4 0 1110.8 0v5l1.2 1.6z"/><path d="M10.2 20.4h3.6"/>' },
+  sparkle:{ f:'<path d="M12 3l2.1 5.9L20 11l-5.9 2.1L12 19l-2.1-5.9L4 11l5.9-2.1z"/>', s:'<path d="M12 3.4l2 5.6 5.6 2-5.6 2-2 5.6-2-5.6-5.6-2 5.6-2z"/>' },
+  target:{ f:'<circle cx="12" cy="12" r="9"/>', s:'<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1"/>' }
+};
+const TONE = { aqua:'url(#gAqua)', ember:'url(#gEmber)', gold:'url(#gGold)', rose:'url(#gRose)' };
+
+function icon(name, size, tone){
+  const d = ICONS[name] || ICONS.info;
+  const g = TONE[tone || 'aqua'];
+  const sz = size ? ' style="width:'+size+'px;height:'+size+'px"' : '';
+  return '<svg viewBox="0 0 24 24" fill="none"'+sz+'>'
+    + (d.f ? '<g fill="'+g+'" opacity=".20">'+d.f+'</g>' : '')
+    + '<g stroke="'+g+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none">'+(d.s||'')+'</g>'
+    + '</svg>';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================================================
+   4b. GENERATED PRODUCT ART
+   Drawn, not photographed: sole, upper, toe cap, collar and laces
+   as separate paths, recoloured per model. No licensed imagery.
+   ============================================================ */
+const SHOE_SHAPES = {
+  runner:{
+    sole:'M22 80 C40 83 90 83 130 80 C155 78 172 74 184 68 C188 74 189 84 184 90 C179 95 172 96 164 96 L34 96 C25 96 18 92 18 87 C18 83 19.5 81 22 80 Z',
+    mid:'M20 86 C60 90 130 87 186 79',
+    upper:'M22 80 C24 62 30 50 44 43 C58 36 74 33 90 35 C104 37 116 43 128 50 C144 59 164 64 184 68 C172 74 155 78 130 80 C90 83 40 83 22 80 Z',
+    panel:'M52 64 C70 57 88 51 104 49 C113 48 121 50 127 54 L119 61 C111 57 101 56 93 58 C79 61 65 67 57 71 Z',
+    lace:'M66 47 L82 41 M72 51 L88 45 M78 55 L94 49',
+    collar:'M23 76 C25 60 31 49 44 42',
+    toe:'M162 64 C170 66 178 67 184 68 C180 72 172 75 162 77 C158 73 158 68 162 64 Z'
+  },
+  lowtop:{
+    sole:'M24 82 C42 85 92 85 132 82 C157 80 174 76 186 71 C190 77 190 86 185 91 C180 95 173 96 165 96 L36 96 C27 96 20 93 20 88 C20 84.5 21.5 83 24 82 Z',
+    mid:'M22 88 C62 92 132 89 188 81',
+    upper:'M24 82 C26 68 32 57 46 50 C60 43 76 41 92 43 C106 45 118 51 130 57 C146 65 166 69 186 71 C174 76 157 80 132 82 C92 85 42 85 24 82 Z',
+    panel:'M96 46 C108 52 120 58 134 62 L124 69 C112 64 100 59 90 55 Z',
+    lace:'M62 55 L80 49 M68 59 L86 53 M74 63 L92 57',
+    collar:'M25 78 C27 66 33 56 46 49',
+    toe:'M164 67 C172 69 180 70 186 71 C181 75 173 78 164 80 C160 76 160 71 164 67 Z'
+  },
+  derby:{
+    sole:'M26 86 C44 89 94 89 134 86 C158 84 176 80 190 76 C192 81 191 88 186 92 C181 95.5 174 96 166 96 L38 96 C29 96 22 94 22 90 C22 87 23.5 86 26 86 Z',
+    mid:'M24 91 C64 94 134 91 190 84',
+    upper:'M26 86 C28 72 36 60 52 55 C68 50 84 50 98 55 C114 61 140 70 190 76 C176 80 158 84 134 86 C94 89 44 89 26 86 Z',
+    panel:'M60 58 C74 58 88 62 100 68 L88 73 C78 68 68 65 58 64 Z',
+    lace:'M64 64 L80 60 M68 68 L84 64',
+    collar:'M27 82 C29 70 37 60 52 54',
+    toe:'M168 73 C176 74 184 75 190 76 C184 79 176 81 168 82 C165 79 165 76 168 73 Z'
+  },
+  chunky:{
+    sole:'M18 78 C38 82 92 82 134 78 C160 75 178 70 190 64 C194 71 194 84 188 90 C183 95 175 96 166 96 L30 96 C21 96 14 92 14 86 C14 81 15.5 79 18 78 Z',
+    mid:'M16 86 C58 91 134 87 192 77',
+    upper:'M18 78 C20 58 28 44 44 36 C60 28 78 25 94 28 C108 31 120 38 132 46 C148 56 170 60 190 64 C178 70 160 75 134 78 C92 82 38 82 18 78 Z',
+    panel:'M56 52 C74 44 92 38 108 38 C118 38 126 41 132 46 L122 54 C114 49 104 47 94 49 C80 52 66 58 58 63 Z',
+    lace:'M62 40 L80 33 M68 45 L86 38 M74 50 L92 43',
+    collar:'M19 74 C21 56 29 43 44 35',
+    toe:'M168 60 C176 62 184 63 190 64 C184 68 176 71 168 73 C164 69 164 64 168 60 Z'
+  }
+};
+const COLORWAY = {
+  peg41:['#2DE3C8','#0E6D63','#FF7A4D','runner'],
+  rev7:['#7BA7FF','#2B4A8F','#EAF7F3','runner'],
+  af1:['#EAF7F3','#9DBDB6','#FF7A4D','lowtop'],
+  dunk:['#FF7A4D','#8F3417','#EAF7F3','lowtop'],
+  infin:['#FF9E6D','#B04A1E','#EAF7F3','runner'],
+  ultra:['#B48CFF','#4A2E8F','#2DE3C8','runner'],
+  samba:['#F2E4C4','#8A6A38','#26221C','lowtop'],
+  stan:['#EAF7F3','#9DBDB6','#2D9159','lowtop'],
+  adizero:['#D6E8FF','#4A6FA5','#FF7A4D','runner'],
+  nb327:['#8FE8D8','#2E6B7A','#F2B441','runner'],
+  nb574:['#9DBDB6','#3D5450','#FF7A4D','chunky'],
+  nb990:['#C9CFCE','#5B6462','#CF0A2C','chunky'],
+  nb1080:['#BFE3DC','#2E6B62','#F2B441','runner'],
+  zshoe:['#7A4A2E','#3A2214','#D8B98A','derby'],
+  zboot:['#4A3423','#241A11','#8A6A48','derby'],
+  zcanvas:['#EAF7F3','#9DBDB6','#26221C','lowtop'],
+  skarch:['#4A5A7A','#20293D','#2DE3C8','chunky'],
+  skmax:['#2B2B2B','#111111','#2DE3C8','chunky'],
+  skflex:['#8FE8D8','#2E6B7A','#EAF7F3','runner']
+};
+function shoeArt(productId, opts){
+  opts = opts || {};
+  const cw = COLORWAY[productId] || ['#2DE3C8','#0E6D63','#FF7A4D','runner'];
+  const sh = SHOE_SHAPES[cw[3]];
+  const uid = 'sh' + productId + (opts.thin ? 't' : '');
+  const soleGroup = opts.thin
+    /* thumbnail scale: compress the sole toward the ground line so it
+       reads as a thin outsole rather than a slab — fine at small size,
+       where the toe-wrap it sacrifices isn't visible anyway */
+    ? '<g transform="translate(0,97) scale(1,0.55) translate(0,-97)">'
+      + '<path d="'+sh.sole+'" fill="url(#'+uid+'s)"/>'
+      + '<path d="'+sh.mid+'" stroke="'+cw[1]+'" stroke-width="1.4" opacity=".4" fill="none"/></g>'
+    /* full size: keep the sole exactly as authored, so its top edge
+       stays connected to the upper with no gap */
+    : '<path d="'+sh.sole+'" fill="url(#'+uid+'s)"/>'
+      + '<path d="'+sh.mid+'" stroke="'+cw[1]+'" stroke-width="1.4" opacity=".4" fill="none"/>';
+  return '<svg viewBox="0 0 208 108" preserveAspectRatio="xMidYMid meet">'
+  + '<defs>'
+  + '<linearGradient id="'+uid+'u" x1=".1" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="'+cw[0]+'"/><stop offset="1" stop-color="'+cw[1]+'"/></linearGradient>'
+  + '<linearGradient id="'+uid+'s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FDFEFE"/><stop offset="1" stop-color="#A9BDB7"/></linearGradient>'
+  + '</defs>'
+  + '<ellipse cx="104" cy="99" rx="80" ry="4.5" fill="#000" opacity=".4"/>'
+  + soleGroup
+  + '<path d="'+sh.upper+'" fill="url(#'+uid+'u)"/>'
+  + '<path d="'+sh.toe+'" fill="'+cw[2]+'" opacity=".5"/>'
+  + '<path d="'+sh.panel+'" fill="'+cw[2]+'" opacity=".92"/>'
+  + '<path d="'+sh.lace+'" stroke="#F7FCFB" stroke-width="2" stroke-linecap="round" opacity=".85" fill="none"/>'
+  + '<path d="'+sh.collar+'" stroke="'+cw[2]+'" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".9"/>'
+  + '<path d="'+sh.upper+'" fill="none" stroke="#04100E" stroke-width=".9" opacity=".3"/>'
+  + '</svg>';
+}
+
+/* ============================================================
+   4b-ii. BRAND MARKS
+   Where a real brand mark asset is available (mark:), it's rendered
+   as-is on a white, bordered badge. For brands with no supplied
+   asset (Zara, Skechers), we fall back to each brand's own
+   typographic voice and real-world identity color, set as a styled
+   wordmark — the way a shopping app legitimately references a brand
+   by name when it doesn't have the mark itself.
+   ============================================================ */
+const BRAND_MARK = {
+  nike:     { mark:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#111111"><path d="M24 7.8L6.442 15.276c-1.456.616-2.679.925-3.668.925-1.12 0-1.933-.392-2.437-1.177-.317-.504-.41-1.143-.28-1.918.13-.775.476-1.6 1.036-2.478.467-.71 1.232-1.643 2.297-2.8a6.122 6.122 0 00-.784 1.848c-.28 1.195-.028 2.072.756 2.632.373.261.886.392 1.54.392.522 0 1.11-.084 1.764-.252L24 7.8z"/></svg>' },
+  adidas:   { mark:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="m24 19.535-8.697-15.07-4.659 2.687 7.145 12.383Zm-8.287 0L9.969 9.59 5.31 12.277l4.192 7.258ZM4.658 14.723l2.776 4.812H1.223L0 17.41Z"/></svg>' },
+  nb:       { mark:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#CF0A2C"><path d="M12.169 10.306l1.111-1.937 3.774-.242.132-.236-3.488-.242.82-1.414h6.47c1.99 0 3.46.715 2.887 2.8-.17.638-.979 2.233-3.356 2.899.507.06 1.76.616 1.54 2.057-.384 2.558-3.69 3.774-5.533 3.774l-7.641.006-.38-1.48 4.005-.28.137-.237-4.346-.264-.467-1.755 6.178-.363.137-.231-11.096-.693.534-.925 11.948-.775.138-.231-3.504-.231m5 .385l1.1-.006c.738-.005 1.502-.34 1.783-1.018.259-.632-.088-1.171-.55-1.166h-1.067l-1.266 2.19zm-1.27 2.195l-1.326 2.305h1.265c.589 0 1.64-.292 1.964-1.128.302-.781-.253-1.177-.638-1.177h-1.266zM6.26 16.445l-.77 1.315L0 17.77l.534-.923 5.726-.402zm.385-10.216l4.417.006.336 1.248-5.276-.33.523-.924zm5 2.245l.484 1.832-7.542-.495.528-.92 6.53-.417zm-3.84 5.281l-.957 1.661-5.32-.302.534-.924 5.743-.435z"/></svg>' },
+  zara:     { text:'ZARA',     bg:'#ffffff', fg:'#111111', font:'300',             tracking:'.14em',  size:0.32, border:true },
+  skechers: { text:'S',        bg:'#2b2b2b', fg:'#ffffff', font:'800 italic',      tracking:'0',      size:0.50 },
+  puma:     { mark:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#242B2F"><path d="M23.845 3.008c-.417-.533-1.146-.106-1.467.08-2.284 1.346-2.621 3.716-3.417 5.077-.626 1.09-1.652 1.89-2.58 1.952-.686.049-1.43-.084-2.168-.405-1.807-.781-2.78-1.792-3.017-1.97-.487-.37-4.23-4.015-7.28-4.164 0 0-.372-.75-.465-.763-.222-.025-.45.451-.616.501-.15.053-.413-.512-.565-.487-.153.02-.302.586-.6.877-.22.213-.486.2-.637.463-.052.096-.034.265-.093.42-.127.32-.551.354-.555.697 0 .381.357.454.669.72.248.212.265.362.554.461.258.088.632-.187.964-.088.277.081.543.14.602.423.054.256 0 .658-.34.613-.112-.015-.598-.174-1.198-.11-.725.077-1.553.309-1.634 1.11-.041.447.514.97 1.055.866.371-.071.196-.506.399-.716.267-.27 1.772.944 3.172.944.593 0 1.031-.15 1.467-.605.04-.029.093-.102.155-.11a.632.632 0 01.195.088c1.131.897 1.984 2.7 6.13 2.721.582.007 1.25.279 1.796.777.48.433.764 1.125 1.037 1.825.418 1.053 1.161 2.069 2.292 3.203.06.068.99.78 1.06.833.012.01.084.167.053.255-.02.69-.123 2.67 1.365 2.753.366.02.275-.231.275-.41-.005-.341-.065-.685.113-1.04.253-.478-.526-.709-.509-1.756.019-.784-.645-.651-.984-1.25-.19-.343-.368-.532-.35-.946.073-2.38-.517-3.948-.805-4.327-.227-.294-.423-.403-.207-.54 1.24-.815 1.525-1.574 1.525-1.574.66-1.541 1.256-2.945 2.075-3.57.166-.12.589-.44.852-.56.763-.362 1.173-.578 1.388-.788.356-.337.635-1.053.294-1.48z"/></svg>' }
+};
+function monogram(brandId, size){
+  const m = BRAND_MARK[brandId] || { text:(BRANDS[brandId]?BRANDS[brandId].name[0]:'?'), bg:'#2DE3C8', fg:'#04100E', font:'700', tracking:'0', size:0.42 };
+  const s = size || 42;
+  if (m.mark){
+    const iconSize = Math.round(s*0.58);
+    const svg = m.mark.replace('<svg ', '<svg width="'+iconSize+'" height="'+iconSize+'" ');
+    return '<span class="brandmark bordered icon" style="height:'+s+'px;width:'+s+'px;min-width:'+s+'px">'+svg+'</span>';
+  }
+  return '<span class="brandmark'+(m.border?' bordered':'')+'" style="height:'+s+'px;min-width:'+s+'px;'
+    + 'font-size:'+Math.round(s*m.size)+'px;font-weight:'+(String(m.font).replace(' italic',''))+';'
+    + (String(m.font).indexOf('italic')>-1?'font-style:italic;':'')
+    + 'letter-spacing:'+m.tracking+';background:'+m.bg+';color:'+m.fg+'">'+esc(m.text)+'</span>';
+}
+
+/* ============================================================
+   4c. CHROME
+   ============================================================ */
+function statusbar(){
+  return '<div class="statusbar"><span>9:41</span>'
+    + '<span class="sb-icons"><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i>'
+    + '<i style="height:11px"></i><span class="sb-batt"></span></span></div>';
+}
+function appbar(title, opts){
+  opts = opts || {};
+  return '<div class="appbar">'
+    + (opts.noBack ? '<span style="width:42px"></span>' : '<button class="iconbtn" data-act="back" aria-label="Back">'+icon('back')+'</button>')
+    + '<h1>'+esc(title)+'</h1>'
+    + (opts.action || '<span style="width:42px"></span>')
+    + '</div>';
+}
+function homeind(){ return '<div class="homeind"><i></i></div>'; }
+function tabbar(active){
+  const tabs = [['home','Home','home'],['scan','Measure','scan'],['sizes','Sizes','ruler'],['brands','Shop','tag'],['profile','You','user']];
+  return '<nav class="tabbar">' + tabs.map(t =>
+    '<button class="tab" data-tab="'+t[0]+'"'+(active===t[0]?' aria-current="page"':'')+'>'
+    + icon(t[2]) + '<span>'+t[1]+'</span></button>').join('') + '</nav>';
+}
+function btn(label, variant, act, opts){
+  opts = opts || {};
+  return '<button class="btn '+(opts.size?opts.size+' ':'')+'btn-'+variant+'" data-act="'+act+'"'
+    + (opts.data ? ' data-arg="'+esc(opts.data)+'"' : '')
+    + (opts.disabled ? ' disabled' : '') + '>'
+    + '<span>'+esc(label)+'</span></button>';
+}
+function alert(tone, msg){
+  const map = { error:['error','rose'], warning:['warn','gold'], success:['check','aqua'], info:['info','aqua'] };
+  const m = map[tone] || map.info;
+  return '<div class="alert '+tone+'">'+icon(m[0],18,m[1])+'<span>'+msg+'</span></div>';
+}
+function row(opts){
+  const tag = opts.act ? 'button' : 'div';
+  return '<'+tag+' class="row'+(opts.act?' tap':'')+'"'+(opts.act?' data-act="'+opts.act+'"':'')
+    + (opts.data?' data-arg="'+esc(opts.data)+'"':'')+'>'
+    + (opts.icon ? '<span class="dot'+(opts.warm?' warm':'')+'">'+icon(opts.icon,20,opts.warm?'ember':'aqua')+'</span>' : '')
+    + '<span class="rt"><b>'+esc(opts.title)+'</b>'+(opts.sub?'<span>'+esc(opts.sub)+'</span>':'')+'</span>'
+    + (opts.value !== undefined ? '<span class="rv">'+esc(opts.value)+'</span>' : '')
+    + (opts.toggle !== undefined ? '<span class="switch" aria-checked="'+opts.toggle+'"></span>' : '')
+    + (opts.act && opts.value===undefined && opts.toggle===undefined ? '<span class="chev">'+icon('chevron',18)+'</span>' : '')
+    + '</'+tag+'>';
+}
+function fitScale(fit){
+  const idx = FIT_ORDER.indexOf(fit);
+  const col = { 'tight':'#c13b3b','snug':'#d08f2a','perfect':'#0f5c56','loose':'#d08f2a','too-loose':'#c13b3b' }[fit];
+  let segs = '';
+  for (let i=0;i<5;i++){
+    const on = i===idx;
+    segs += '<i class="'+(on?'on':'')+'"'+(on?' style="background:'+col+';box-shadow:0 0 12px '+col+'55"':'')+'></i>';
+  }
+  const capIcon = fit==='perfect' ? 'check' : 'warn';
+  const capTone = fit==='perfect' ? 'aqua' : (fit==='snug'||fit==='loose') ? 'gold' : 'rose';
+  return '<div class="fit"><div class="fit-scale">'+segs+'</div>'
+    + '<div class="fit-cap" style="color:'+col+'">'+icon(capIcon,14,capTone)+FIT_LABEL[fit]+'</div></div>';
+}
+function confRing(pct, note){
+  const tier = pct >= CONFIDENCE_THRESHOLD ? '' : pct >= 62 ? 'medium' : 'low';
+  const grad = tier === 'low' ? 'gRingLow' : tier === 'medium' ? 'gRingMed' : 'gRing';
+  const col = tier === 'low' ? '#c13b3b' : tier === 'medium' ? '#d08f2a' : '#0f5c56';
+  const C = 2 * Math.PI * 38;
+  return '<div class="confring '+tier+'">'
+    + '<span class="ringwrap"><svg viewBox="0 0 88 88">'
+    + '<circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="7"/>'
+    + '<circle class="prog" cx="44" cy="44" r="38" fill="none" stroke="url(#'+grad+')" stroke-width="7"'
+    + ' stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+C.toFixed(1)+'" data-ring="'+pct+'"/></svg>'
+    + '<span class="num" style="color:'+col+'"><span data-count="'+pct+'">0</span>%</span></span>'
+    + '<span class="meta"><b>Scan confidence</b><span>'+note+'</span></span></div>';
+}
+function stat(label, value, unit, hero){
+  return '<div class="stat'+(hero?' hero':'')+'"><div class="lbl">'+esc(label)+'</div>'
+    + '<div class="val"><span data-count="'+value+'" data-dec="1">0</span><u>'+unit+'</u></div></div>';
+}
+
+/* ============================================================
+   4d. CANVAS — the live depth scanner
+   ============================================================ */
+const Scan = (function(){
+  let raf = null, pts = null, t0 = 0;
+
+  /* Half-width down a real foot: heel, the narrow waist at the arch,
+     the ball at its widest, then the toe taper. Normalised to 1. */
+  const PROFILE = [[0,0],[0.04,0.46],[0.11,0.66],[0.20,0.70],[0.32,0.60],[0.45,0.63],
+                   [0.60,0.86],[0.70,1.00],[0.79,0.97],[0.87,0.84],[0.94,0.62],[0.985,0.34],[1,0]];
+  function width(u){
+    u = Math.max(0, Math.min(1, u));
+    for (let i=1;i<PROFILE.length;i++){
+      if (u <= PROFILE[i][0]){
+        const a = PROFILE[i-1], b = PROFILE[i];
+        const t = (u - a[0]) / (b[0] - a[0]);
+        return a[1] + (b[1]-a[1]) * (t*t*(3-2*t));
+      }
+    }
+    return 0;
+  }
+  function build(n){
+    const a = []; let guard = 0;
+    while (a.length < n && guard++ < n*14){
+      const u = Math.random(), v = Math.random()*2-1;
+      if (Math.abs(v) > width(u)) continue;
+      const arch = Math.exp(-Math.pow((u-0.38)/0.30,2)) * (1 - Math.abs(v)*0.55);
+      a.push({ u:u, v:v, h:Math.max(0,arch) });
+    }
+    return a;
+  }
+  function stop(){ if (raf) cancelAnimationFrame(raf); raf = null; }
+  /* opts.surface: 'dark' for the full-bleed camera/processing screens (bright
+     teal on near-black, needs to read like a live sensor); 'light' for the
+     home-card widget sitting on a white surface (dark teal on paper). */
+  function start(canvas, opts){
+    stop();
+    const light = opts.surface === 'light';
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    const quality = Math.max(0.18, Math.min(1, (opts.light/100)*0.6 + (opts.steady/100)*0.4));
+    pts = build(Math.round(260 + quality*840));
+    t0 = performance.now();
+    const dotCol = light ? '15,92,86' : '45,227,200';
+    const hotCol = light ? '15,92,86' : '170,255,240';
+    const contourCol = light ? '15,92,86' : '45,227,200';
+
+    function frame(now){
+      const W = canvas.clientWidth, H = canvas.clientHeight;
+      if (!W || !H){ raf = requestAnimationFrame(frame); return; }
+      const time = (now - t0)/1000;
+      ctx.clearRect(0,0,W,H);
+
+      if (light){
+        ctx.fillStyle = '#eef6f5'; ctx.fillRect(0,0,W,H);
+      } else {
+        const g = ctx.createRadialGradient(W*0.5,H*0.45,10,W*0.5,H*0.5,H*0.78);
+        g.addColorStop(0,'rgba(18,58,52,'+(0.30+quality*0.32)+')');
+        g.addColorStop(1,'rgba(4,16,14,1)');
+        ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+      }
+
+      /* a foot is ~2.6x longer than wide — proportion to that, not to the canvas */
+      const len = Math.min(H*0.55, W*1.5);
+      const halfW = len*0.21;
+      const cx = W*0.5, top = (H - len)*0.40;
+      const yOf = u => top + (1-u)*len;          // toes away from the viewer
+      const jitter = (1-quality)*9;
+      const sweep = (time*0.42) % 1.35;
+
+      ctx.lineWidth = 1;
+      const scales = [1,0.80,0.60,0.42,0.26];
+      for (let k=0;k<scales.length;k++){
+        const s = scales[k];
+        const y = u => top + (1 - (0.5 + (u-0.5)*(0.30+0.70*s)))*len;
+        ctx.beginPath();
+        for (let i=0;i<=72;i++){ const u=i/72, x=cx+width(u)*halfW*s;
+          i===0 ? ctx.moveTo(x,y(u)) : ctx.lineTo(x,y(u)); }
+        for (let i=72;i>=0;i--){ const u=i/72; ctx.lineTo(cx-width(u)*halfW*s, y(u)); }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba('+contourCol+','+(k===0?(light?0.55:0.34):(light?0.14:0.05)+0.04*(scales.length-k))+')';
+        ctx.stroke();
+      }
+
+      for (let i=0;i<pts.length;i++){
+        const p = pts[i];
+        const x = cx + p.v*halfW + Math.sin(time*2.4+i)*jitter*0.4;
+        const y = yOf(p.u) + Math.cos(time*2.1+i*1.7)*jitter*0.4;
+        const hot = Math.max(0, 1 - Math.abs(p.u-sweep)*9);
+        const alpha = Math.min(1, (light?0.30:0.22) + p.h*0.50*quality + hot*0.85);
+        const size = 1 + p.h*1.6 + hot*2.1;
+        ctx.fillStyle = hot > 0.35 ? 'rgba('+hotCol+','+alpha+')' : 'rgba('+dotCol+','+alpha+')';
+        ctx.fillRect(x,y,size,size);
+      }
+
+      if (sweep <= 1){
+        const y = yOf(sweep);
+        const lg = ctx.createLinearGradient(cx-halfW*1.3,0,cx+halfW*1.3,0);
+        lg.addColorStop(0,'rgba('+dotCol+',0)');
+        lg.addColorStop(.5,'rgba('+hotCol+','+(light?0.7:0.95)+')');
+        lg.addColorStop(1,'rgba('+dotCol+',0)');
+        ctx.fillStyle = lg; ctx.fillRect(cx-halfW*1.3, y-1, halfW*2.6, 2);
+      }
+
+      const ro = opts.refObj;
+      const rw = ro==='a4'?46:ro==='coin'?17:40, rh = ro==='a4'?64:ro==='coin'?17:25;
+      ctx.save(); ctx.translate(cx+halfW*1.35, top+len*0.58); ctx.rotate(-0.06);
+      ctx.fillStyle = light ? 'rgba(15,92,86,'+(0.06+quality*0.06)+')' : 'rgba(234,247,243,'+(0.10+quality*0.16)+')';
+      ctx.strokeStyle = 'rgba('+contourCol+','+(0.35+quality*0.4)+')';
+      ctx.lineWidth = 1.2;
+      if (ro==='coin'){ ctx.beginPath(); ctx.arc(0,0,rh/2,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+      else { ctx.fillRect(-rw/2,-rh/2,rw,rh); ctx.strokeRect(-rw/2,-rh/2,rw,rh); }
+      ctx.restore();
+
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  return { start:start, stop:stop };
+})();
+
+/* ============================================================
+   5. ROUTER
+   ============================================================ */
+const device = document.getElementById('device');
+let stack = [], sheet = null;
+
+function go(name, opts){
+  opts = opts || {};
+  if (!opts.replace) stack.push({ name:name, args:opts.args || {} });
+  else stack[stack.length-1] = { name:name, args:opts.args || {} };
+  render(opts.back ? 'enter-back' : opts.fade ? 'enter-fade' : 'enter');
+}
+function back(){ if (stack.length > 1){ stack.pop(); render('enter-back'); } }
+function reset(name){ stack = [{ name:name, args:{} }]; render('enter-fade'); }
+function openSheet(fn){ sheet = fn; render('none'); }
+function closeSheet(){ sheet = null; render('none'); }
+function dismissSheet(){ sheet = null; }
+function current(){ return stack[stack.length-1]; }
+
+function render(anim){
+  Scan.stop();
+  const cur = current();
+  const view = SCREENS[cur.name];
+  if (!view){ device.innerHTML = '<div style="padding:40px">Unknown screen: '+cur.name+'</div>'; return; }
+  device.innerHTML = DEFS
+    + '<section class="screen'+(anim && anim!=='none' ? ' '+anim : '')+'">'+view(cur.args||{})+'</section>'
+    + (sheet ? '<div class="scrim" data-act="sheet-dismiss"><div class="sheet">'+sheet()+'</div></div>' : '')
+    + '<div class="toasts" id="toasts"></div>';
+  localize(device);
+  animateIn();
+  flushToasts();
+  renderPanel();
+}
+
+function animateIn(){
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const target = parseFloat(el.getAttribute('data-count'));
+    const dec = +(el.getAttribute('data-dec') || 0);
+    if (isNaN(target)) return;
+    const dur = 750, t0 = performance.now();
+    (function step(now){
+      const k = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-k,3);
+      el.textContent = (target*e).toFixed(dec);
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
+  });
+  requestAnimationFrame(() => {
+    document.querySelectorAll('[data-ring]').forEach(el => {
+      const pct = +el.getAttribute('data-ring'), C = 2*Math.PI*38;
+      el.style.strokeDashoffset = (C*(1-pct/100)).toFixed(1);
+    });
+  });
+  const cv = document.getElementById('scanCanvas');
+  if (cv) Scan.start(cv, { light:S.scan.light, steady:S.scan.steady, refObj:S.scan.refObj,
+    surface: cv.dataset.surface === 'light' ? 'light' : 'dark' });
+}
+
+/* ============================================================
+   6. TOASTS
+   ============================================================ */
+let toastQueue = [];
+function toast(msg, tone){
+  toastQueue.push({ msg:msg, tone:tone||'' });
+  flushToasts();
+  setTimeout(() => { toastQueue.shift(); flushToasts(); }, 3200);
+}
+function flushToasts(){
+  const el = document.getElementById('toasts');
+  if (!el) return;
+  el.innerHTML = toastQueue.map(t =>
+    '<div class="toast '+t.tone+'">'
+    + icon(t.tone==='error'?'error':t.tone==='success'?'check':'sparkle',18,t.tone==='error'?'rose':'aqua')
+    + '<span>'+esc(t.msg)+'</span></div>').join('');
+  localize(el);
+}
+
+/* ============================================================
+   7. SCREENS
+   ============================================================ */
+const SCREENS = {};
+
+/* ---------- HOME ---------- */
+SCREENS.home = () => {
+  const body = !S.measurement ? homeEmpty() : homeSized();
+  return statusbar() + '<div class="content">' + body + '</div>' + tabbar('home') + homeind();
+};
+
+function homeEmpty(){
+  const guest = !S.account;
+  return '<div style="padding-top:6px"><h2 class="title">Every brand sizes you<br>differently.</h2>'
+    + '<p class="sub" style="margin-top:10px">One scan. We translate your feet into the size each brand actually makes.</p></div>'
+    + '<div class="card" style="padding:0;overflow:hidden">'
+    + '<div style="position:relative;height:210px">'
+    + '<canvas id="scanCanvas" data-surface="light" style="position:absolute;inset:0;width:100%;height:100%"></canvas>'
+    + '</div>'
+    + '<div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--hair)">'
+    + '<span style="flex:1"><b style="display:block;font-family:\'Sora\',sans-serif;font-size:16px;font-weight:600">Depth scan</b>'
+    + '<span style="font-size:12px;color:var(--ink-2)">Length, width and arch in under 30 seconds</span></span>'
+    + '<span class="badge success">'+icon('bolt',14,'aqua')+'On device</span></div></div>'
+    + btn('Scan my feet','accent','goto-scan')
+    + (guest ? alert('warning','You are browsing as a guest. Measurements stay on this phone until you create an account.') : '')
+    + '<div class="spacer"></div>'
+    + (guest ? btn('Create an account','tertiary','goto-auth') : '');
+}
+
+function homeSized(){
+  const m = S.measurement, f = drivingFoot(m);
+  const recs = allRecommendations(m).filter(r => r.rec.mapped).sort((a,b) => b.rec.confidence - a.rec.confidence);
+  const top = recs[0];
+  return '<div style="padding-top:4px;display:flex;align-items:flex-end;gap:12px">'
+    + '<span style="flex:1"><h2 class="title">Your size profile</h2>'
+    + '<p class="sub" style="margin-top:6px">Scanned '+m.date+'</p></span>'
+    + '<span class="badge '+(m.accepted?'success':'error')+'">'+m.confidence+'%</span></div>'
+    + (!m.accepted ? alert('warning','Accepted below the '+CONFIDENCE_THRESHOLD+'% threshold. Length may be off by \u00b1'+m.errBand+' mm \u2014 more than one size.') : '')
+    + '<div class="card"><div class="stats">'
+    + stat('Length', f.L, 'mm', true) + stat('Width', f.W, 'mm') + stat('Arch', f.arch, 'mm')
+    + '</div></div>'
+    + '<div class="sect">Best match</div>'
+    + recCard(top.id, top.rec)
+    + row({ title:'All brand sizes', sub:recs.length+' brands mapped to your feet', icon:'ruler', act:'goto-sizes' })
+    + row({ title:'Measurement history', sub:S.history.length+' scan'+(S.history.length===1?'':'s')+' saved', icon:'clock', act:'goto-history' })
+    + '<div class="spacer"></div>'
+    + btn('Re-scan my feet','secondary','goto-scan');
+}
+
+function recCard(brandId, rec){
+  const b = BRANDS[brandId], off = S.brandOffset[brandId];
+  const tone = rec.tier==='high'?'success':rec.tier==='medium'?'warning':'error';
+  const wash = 'var(--'+tone+'-subtle)';
+  return '<div class="card tap tier-'+tone+'" data-act="open-brand" data-arg="'+brandId+'" '
+    + 'style="display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,'+wash+' 0%,var(--surface) 130px)">'
+    + '<div style="display:flex;align-items:center;gap:12px">'+monogram(brandId,44)
+    + '<span style="flex:1;min-width:0"><b style="display:block;font-size:17px;font-weight:600">'+b.name+'</b>'
+    + '<span style="font-size:11.5px;color:var(--ink-3)">'+(off ? 'Tuned '+(off>0?'+':'')+off+' mm from feedback' : b.users.toLocaleString()+' similar feet')+'</span></span>'
+    + '<span class="badge '+tone+'">'+rec.confidence+'% sure</span></div>'
+    + '<div style="display:flex;align-items:flex-end;gap:10px">'
+    + '<span class="sizehero">EU '+rec.label+'</span>'
+    + '<span style="font-size:12px;color:var(--ink-3);padding-bottom:2px">US '+rec.us+'<br>UK '+rec.uk+'</span></div>'
+    + fitScale(rec.fit)
+    + '<div style="border-top:1px solid var(--hair);padding-top:12px">'
+    + '<button class="btn sm btn-primary" data-act="open-catalog" data-arg="'+brandId+'" style="width:100%">'
+    + 'Shop '+b.name+' in EU '+rec.label+'</button></div></div>';
+}
+
+/* ---------- AUTH ---------- */
+SCREENS.authPhone = () => {
+  const locked = S.auth.lockedUntil > Date.now();
+  return statusbar() + appbar('', { noBack:stack.length<=1 }) + '<div class="content">'
+    + '<div><h2 class="title">What\u2019s your number?</h2>'
+    + '<p class="sub" style="margin-top:8px">We send a 6-digit code. No password to forget.</p></div>'
+    + '<div class="field'+(S.auth.error?' err':'')+'"><label>Mobile number</label>'
+    + '<div class="phone-wrap"><span class="cc">+20</span>'
+    + '<input id="phoneInput" inputmode="numeric" maxlength="11" placeholder="10 1234 5678" value="'+esc(S.auth.phone)+'"></div>'
+    + (S.auth.error ? '<span class="msg">'+S.auth.error+'</span>' : '')+'</div>'
+    + alert('info','Egyptian numbers in this build. Any 10\u201311 digits will do.')
+    + '<div class="spacer"></div>'
+    + btn(locked?'Try again shortly':'Send code','accent','send-code',{ disabled:locked })
+    + btn('Continue as guest','tertiary','guest-mode')
+    + '<p class="note" style="text-align:center">By continuing you agree to the Terms and Privacy Policy.</p>'
+    + '</div>' + homeind();
+};
+
+SCREENS.authOtp = () => {
+  const remaining = Math.max(0, 3 - S.auth.attempts);
+  const locked = S.auth.lockedUntil > Date.now();
+  return statusbar() + appbar('') + '<div class="content">'
+    + '<div><h2 class="title">Enter the code</h2>'
+    + '<p class="sub" style="margin-top:8px">Sent to +20 '+esc(S.auth.phone)+'. Demo code is <b style="color:var(--aqua)">'+S.auth.code+'</b>.</p></div>'
+    + '<div class="otp'+(S.auth.error?' err':'')+'" id="otpWrap">'
+    + [0,1,2,3,4,5].map(i => '<input inputmode="numeric" maxlength="1" data-otp="'+i+'">').join('')+'</div>'
+    + (S.auth.error ? alert('error', S.auth.error + (locked?'':' '+remaining+' attempt'+(remaining===1?'':'s')+' left.')) : '')
+    + (locked ? alert('warning','Locked for 30 seconds. That is the rate limit in your auth spec, working.') : '')
+    + '<div class="spacer"></div>'
+    + btn('Verify','accent','verify-code',{ disabled:locked })
+    + btn('Resend code','tertiary','resend-code')
+    + '</div>' + homeind();
+};
+
+SCREENS.authName = () => statusbar() + appbar('', { noBack:true }) + '<div class="content">'
+  + '<div><h2 class="title">What should we call you?</h2>'
+  + '<p class="sub" style="margin-top:8px">Used on your orders and nowhere else.</p></div>'
+  + '<div class="field"><label>Name</label><input id="nameInput" placeholder="Hatem G." value="Hatem G."></div>'
+  + (S.measurement ? alert('success','Your guest measurement will move across automatically.') : '')
+  + '<div class="spacer"></div>'
+  + btn('Create account','accent','finish-auth')
+  + '</div>' + homeind();
+
+/* ---------- SCAN ---------- */
+SCREENS.scanIntro = () => statusbar() + appbar('') + '<div class="content">'
+  + '<div><h2 class="title">Three steps,<br>thirty seconds.</h2>'
+  + '<p class="sub" style="margin-top:8px">Accuracy comes from a hard floor and good light. You control both on the next screen.</p></div>'
+  + row({ title:'Find a hard, flat floor', sub:'Carpet swallows the edge of your foot', icon:'home' })
+  + row({ title:'Add a reference object', sub:'Bank card, A4 sheet or a 1 EGP coin', icon:'target' })
+  + row({ title:'Point and hold', sub:'Both feet, captured one at a time', icon:'camera' })
+  + alert('info','Frames are processed on the device and discarded once the measurement is saved.')
+  + '<div class="spacer"></div>'
+  + btn('Start scan','accent','ask-camera')
+  + '</div>' + tabbar('scan') + homeind();
+
+SCREENS.cameraPermission = () => statusbar() + appbar('') + '<div class="content">'
+  + '<div class="dot" style="width:76px;height:76px;border-radius:24px;margin-top:10px">'+icon('camera',34,'aqua')+'</div>'
+  + '<div><h2 class="title">Allow camera access</h2>'
+  + '<p class="sub" style="margin-top:8px">The camera is how we measure. Frames never leave the phone and are deleted the moment the measurement is saved.</p></div>'
+  + '<div class="spacer"></div>'
+  + btn('Allow camera','accent','grant-camera')
+  + btn('Not now','tertiary','deny-camera')
+  + '</div>' + homeind();
+
+SCREENS.cameraDenied = () => statusbar() + appbar('') + '<div class="content">'
+  + '<div class="dot warm" style="width:76px;height:76px;border-radius:24px;margin-top:10px">'+icon('lock',34,'ember')+'</div>'
+  + '<div><h2 class="title">Scanning needs<br>the camera.</h2>'
+  + '<p class="sub" style="margin-top:8px">Turn camera access on in settings, or tell us the size you normally wear and we will map it across brands at lower confidence.</p></div>'
+  + alert('error','Camera permission is currently blocked.')
+  + '<div class="spacer"></div>'
+  + btn('Open settings','primary','grant-camera')
+  + btn('Enter my size manually','tertiary','manual-size')
+  + '</div>' + homeind();
+
+SCREENS.refObject = () => {
+  const opts = Object.values(REF_OBJECTS).map(o =>
+    '<button class="opt" role="radio" aria-checked="'+(S.scan.refObj===o.id)+'" data-act="pick-ref" data-arg="'+o.id+'">'
+    + '<span class="rad"></span><span class="ot"><b>'+o.name+'</b><span>'+o.detail+'</span></span></button>').join('');
+  return statusbar() + appbar('') + '<div class="content">'
+    + '<div><h2 class="title">Pick a scale reference</h2>'
+    + '<p class="sub" style="margin-top:8px">A known size is what turns pixels into millimetres. The coin is smallest, so it forgives the least.</p></div>'
+    + opts
+    + '<div class="sect">Floor surface</div>'
+    + '<div class="chips">'
+    + '<button class="chip" aria-pressed="'+(S.scan.surface==='hard')+'" data-act="pick-surface" data-arg="hard">Hard floor</button>'
+    + '<button class="chip" aria-pressed="'+(S.scan.surface==='carpet')+'" data-act="pick-surface" data-arg="carpet">Carpet</button></div>'
+    + alert('info','Lay the object flat beside your foot, not on top of it.')
+    + '<div class="spacer"></div>'
+    + btn('Continue','accent','goto-capture')
+    + '</div>' + homeind();
+};
+
+/* Live scanner. Lighting and steadiness are real inputs driving both the
+   picture and the confidence score, so the 80% branch is computed. */
+SCREENS.capture = (args) => {
+  const conf = computeScanConfidence(S.scan);
+  const second = args.foot === 'left';
+  let msg, cls, blocked = false;
+  if (S.scan.light < 40){ msg = 'Too dark \u2014 find brighter light'; cls = 'bad'; blocked = true; }
+  else if (S.scan.steady < 45){ msg = 'Hold the phone steadier'; cls = 'bad'; blocked = true; }
+  else if (conf < CONFIDENCE_THRESHOLD){ msg = 'Readable, but only '+conf+'% confident'; cls = ''; }
+  else { msg = second ? 'Left foot detected \u2014 hold still' : 'Right foot detected \u2014 hold still'; cls = 'good'; }
+
+  return '<div class="cam">'
+    + '<canvas id="scanCanvas"></canvas><div class="cam-vig"></div>'
+    + statusbar()
+    + '<div class="cam-top"><button data-act="cancel-scan">Cancel</button>'
+    + '<span class="cam-pill">'+(second?'Left \u00b7 2 of 2':'Right \u00b7 1 of 2')+'</span>'
+    + '<span style="width:60px"></span></div>'
+    + '<div class="cam-msg '+cls+'">'+icon(cls==='bad'?'warn':cls==='good'?'check':'info',17,cls==='bad'?'rose':'aqua')
+    + '<span>'+msg+'</span></div>'
+    + '<button class="shutter" data-act="'+(second?'capture-left':'capture-right')+'"'
+    + (blocked?' disabled':'')+' aria-label="Capture"><i></i></button>'
+    + '<div class="homeind"><i></i></div></div>';
+};
+
+SCREENS.processing = () => '<div class="proc">'
+  + '<canvas id="scanCanvas"></canvas>'
+  + '<div class="inner"><h2>Building your foot model</h2>'
+  + '<div class="bar"><i id="procBar" style="width:4%"></i></div>'
+  + '<div class="step" id="procStep">Detecting outline</div></div></div>';
+
+/* ---------- RESULTS ---------- */
+SCREENS.result = () => {
+  const m = S.measurement, ok = m.accepted, f = drivingFoot(m);
+  return statusbar() + appbar('') + '<div class="content">'
+    + '<div><h2 class="title">'+(ok?'Measured.':'Not confident enough.')+'</h2></div>'
+    + confRing(m.confidence, ok
+        ? 'Above the '+CONFIDENCE_THRESHOLD+'% threshold. Recommendations are ready.'
+        : 'Below '+CONFIDENCE_THRESHOLD+'%. Length could be out by \u00b1'+m.errBand+' mm, which is more than one size.')
+    + (ok ? '' : alert('warning','Cause: '+lowConfReason()+'.'))
+    + '<div class="card"><div class="stats">'
+    + stat('Length', f.L, 'mm', true) + stat('Width', f.W, 'mm') + stat('Arch', f.arch, 'mm')
+    + '</div></div>'
+    + '<div class="spacer"></div>'
+    + (ok
+      ? btn('Save and see my sizes','accent','accept-measurement') + btn('View full measurements','tertiary','goto-measurements')
+      : btn('Scan again','accent','goto-ref') + btn('Use this result anyway','tertiary','accept-low'))
+    + '</div>' + homeind();
+};
+function lowConfReason(){
+  const s = S.scan;
+  if (s.light < 55) return 'the light was too low for a clean outline';
+  if (s.steady < 60) return 'camera shake blurred the edge of the foot';
+  if (s.refObj === 'coin') return 'the coin is small, so a few pixels of error become millimetres';
+  if (s.surface === 'carpet') return 'carpet hides where the foot actually ends';
+  return 'the reference object was only partly readable';
+}
+
+SCREENS.measurements = () => {
+  const m = S.measurement;
+  return statusbar() + appbar('Full measurements') + '<div class="content">'
+    + '<div class="sect">Right foot</div>'
+    + '<div class="card"><div class="stats">'+stat('Length',m.right.L,'mm',true)+stat('Width',m.right.W,'mm')+stat('Arch',m.right.arch,'mm')+'</div></div>'
+    + '<div class="sect">Left foot</div>'
+    + '<div class="card"><div class="stats">'+stat('Length',m.left.L,'mm',true)+stat('Width',m.left.W,'mm')+stat('Arch',m.left.arch,'mm')+'</div></div>'
+    + alert('info','Your feet differ by '+round1(Math.abs(m.right.L-m.left.L))+' mm. We size to the longer one, which is standard fitting practice.')
+    + row({ title:'Captured', value:m.date })
+    + row({ title:'Reference used', value:REF_OBJECTS[m.refObj].name })
+    + row({ title:'Width category', value:widthCategory(drivingFoot(m)) })
+    + row({ title:'Confidence', value:m.confidence+'%' })
+    + '<div class="spacer"></div>'
+    + btn('Export measurements','secondary','export-data')
+    + '</div>' + homeind();
+};
+function widthCategory(f){
+  const r = f.W / f.L;
+  if (r < 0.362) return 'Narrow (B)';
+  if (r < 0.378) return 'Medium (D)';
+  if (r < 0.392) return 'Wide (2E)';
+  return 'Extra wide (4E)';
+}
+
+/* EU labels can carry thirds, so sort on the real number, not the string. */
+function euNum(l){
+  const s = String(l);
+  const base = parseFloat(s);
+  if (s.indexOf('\u2153') > -1) return base + 1/3;
+  if (s.indexOf('\u2154') > -1) return base + 2/3;
+  return base;
+}
+
+/* ---------- SIZES ---------- */
+SCREENS.sizes = () => {
+  if (!S.measurement) return statusbar() + '<div class="content">'
+    + '<div class="spacer"></div>'
+    + '<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">'
+    + '<div class="dot" style="width:64px;height:64px">'+icon('lock',28)+'</div>'
+    + '<b style="font-size:18px">No sizes yet</b>'
+    + '<p class="sub">Sizes are calculated from a scan. One scan unlocks every brand.</p>'
+    + btn('Start scan','accent','goto-scan')+'</div>'
+    + '<div class="spacer"></div></div>' + tabbar('sizes') + homeind();
+
+  const m = S.measurement;
+  const recs = allRecommendations(m).sort((a,b) =>
+    (b.rec.mapped?b.rec.confidence:-1) - (a.rec.mapped?a.rec.confidence:-1));
+  return statusbar() + '<div class="content">'
+    + '<div><h2 class="title">Your size in every brand</h2>'
+    + '<p class="sub" style="margin-top:4px">From your '+m.date+' scan \u00b7 '+drivingFoot(m).L+' mm</p></div>'
+    + (!m.accepted ? alert('warning','Low-confidence scan \u2014 all confidences below are capped at 62%.') : '')
+    + recs.map(r => r.rec.mapped ? recCard(r.id, r.rec) : unmappedCard(r.id)).join('')
+    + '</div>' + tabbar('sizes') + homeind();
+};
+function unmappedCard(brandId){
+  const b = BRANDS[brandId];
+  return '<div class="card tap tier-neutral" data-act="open-brand" data-arg="'+brandId+'" style="display:flex;align-items:center;gap:12px">'
+    + '<span style="opacity:.55">'+monogram(brandId,38)+'</span>'
+    + '<span style="flex:1;min-width:0"><b style="display:block;font-size:16px">'+b.name+'</b>'
+    + '<span style="font-size:12px;color:var(--ink-3)">Sizing chart not verified for Egypt</span></span>'
+    + '<span class="badge neutral" style="flex:0 0 auto">Not mapped</span></div>';
+}
+
+SCREENS.brandDetail = (args) => {
+  const id = args.brand || S.activeBrand;
+  const b = BRANDS[id];
+  const m = S.measurement;
+  if (!m) return statusbar() + appbar(b.name) + '<div class="content">'
+    + '<div class="spacer"></div>'
+    + '<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">'
+    + '<div class="dot" style="width:64px;height:64px">'+icon('ruler',28)+'</div>'
+    + '<b style="font-size:18px">Scan first</b>'
+    + '<p class="sub">'+b.name+' sizes are calculated from your measurement.</p>'
+    + btn('Start scan','accent','goto-scan')+'</div>'
+    + '<div class="spacer"></div></div>' + homeind();
+  if (!b.mapped) return statusbar() + appbar(b.name) + '<div class="content">'
+    + '<div class="spacer"></div>'
+    + '<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">'
+    + '<div class="dot" style="width:64px;height:64px">'+icon('info',28)+'</div>'
+    + '<b style="font-size:18px">'+b.name+' is not mapped yet</b>'
+    + '<p class="sub">We have not verified '+b.name+' sizing against Egyptian stock. Guessing here would be worse than saying nothing.</p>'
+    + btn('Notify me when it\u2019s live','primary','notify-brand',{ data:id })+'</div>'
+    + '<div class="spacer"></div>'
+    + alert('warning','Generic conversion suggests EU '+Math.round((drivingFoot(m).L+22)/6.6667)+', but that is not a tAIlored recommendation.')
+    + btn('Browse mapped brands','tertiary','goto-brands')
+    + '</div>' + homeind();
+
+  const rec = recommend(id, m);
+  const step = b.step;
+  const alts = [-2,-1,1,2].map(k => {
+    const eu = roundToStep(rec.eu + k*step, step);
+    const alt = simulateFitAt(id, eu, m);
+    return { eu:eu, label:sizeLabel(eu, step), fit:alt };
+  });
+  const off = S.brandOffset[id] || 0;
+  return statusbar() + appbar(b.name) + '<div class="content">'
+    + recCard(id, rec)
+    + '<div class="sect">Other sizes in this brand</div>'
+    + alts.map(a => '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--ink-2)">EU '+a.label+'</div>'
+        + fitScale(a.fit)+'</div>').join('')
+    + (off ? alert('success','Adjusted '+(off>0?'+':'')+off+' mm for you after your fit feedback on '+b.name+'.')
+           : alert('info','Learned from '+b.users.toLocaleString()+' users with feet like yours.'))
+    + '<div class="spacer"></div>'
+    + btn('Shop '+b.name+' in EU '+rec.label,'accent','open-catalog',{ data:id })
+    + '</div>' + homeind();
+};
+function simulateFitAt(brandId, eu, m){
+  const b = BRANDS[brandId];
+  const foot = drivingFoot(m);
+  const eff = b.allowance + (S.brandOffset[brandId]||0) + (FIT_PREF_SHIFT[S.prefs.fit]||0);
+  const wp = (foot.W/foot.L - b.widthProfile) * 1000;
+  const score = (eu * 6.6667 - eff - foot.L) - wp * WIDTH_WEIGHT;
+  if (score < -3.5) return 'tight';
+  if (score < -1.2) return 'snug';
+  if (score <= 3.8) return 'perfect';
+  if (score <= 6.5) return 'loose';
+  return 'too-loose';
+}
+
+/* ---------- BRANDS ---------- */
+SCREENS.brands = () => {
+  const m = S.measurement;
+  const tiles = Object.values(BRANDS).map(b => {
+    const rec = m ? recommend(b.id, m) : null;
+    const tone = !b.mapped ? 'neutral' : !m ? 'neutral' : rec.tier==='high'?'success':rec.tier==='medium'?'warning':'error';
+    return '<button class="tile tier-'+tone+(!b.mapped?' dim':'')+'" data-act="open-brand" data-arg="'+b.id+'">'
+      + '<div class="tile-media">'+monogram(b.id,60)
+      + '<span class="badge tile-badge '+tone+'">'+(!b.mapped?'Unmapped':!m?'\u2014':rec.confidence+'%')+'</span></div>'
+      + '<div class="tile-body"><b>'+b.name+'</b>'
+      + '<span class="tile-sub">'+icon('ruler',12,'aqua')
+      + '<span>'+(!b.mapped ? 'Not mapped yet' : !m ? 'Scan to see your size' : 'Your size: EU '+rec.label)+'</span></span></div>'
+      + '</button>';
+  }).join('');
+  const mapped = Object.values(BRANDS).filter(b=>b.mapped).length;
+  return statusbar() + '<div class="content">'
+    + '<div><h2 class="title">Brands</h2>'
+    + '<p class="sub" style="margin-top:4px">'+mapped+' of '+Object.keys(BRANDS).length+' brands mapped to Egyptian stock</p></div>'
+    + '<div class="grid">'+tiles+'</div>'
+    + '</div>' + tabbar('brands') + homeind();
+};
+
+/* ---------- CATALOG ---------- */
+SCREENS.catalog = (args) => {
+  const brandId = args.brand || S.catalogBrand;
+  const b = BRANDS[brandId];
+  const m = S.measurement;
+  const items = PRODUCTS.filter(p => p.brand === brandId);
+  const shown = items.filter(p => {
+    if (!m || S.catalogFilter !== 'fits') return true;
+    const r = recommend(brandId, m, p.lastBias);
+    return stockFor(p, r.label) > 0;
+  });
+  const cards = shown.map(p => {
+    const r = m ? recommend(brandId, m, p.lastBias) : null;
+    const stock = r ? stockFor(p, r.label) : null;
+    const badge = !m ? '<span class="badge neutral">Scan for fit</span>'
+      : stock === null ? '<span class="badge neutral">Size not made</span>'
+      : stock === 0 ? '<span class="badge error">EU '+r.label+' sold out</span>'
+      : r.fit === 'perfect' ? '<span class="badge success">Fits EU '+r.label+'</span>'
+      : '<span class="badge warning">'+FIT_LABEL[r.fit].split(' \u2014')[0]+'</span>';
+    return '<button class="pcard'+(stock===0?' out':'')+'" data-act="open-product" data-arg="'+p.id+'">'
+      + '<span class="pimg">'+shoeArt(p.id,{thin:true})+'<span class="shine"></span></span>'
+      + badge
+      + '<span class="pb">'+b.name.toUpperCase()+'</span>'
+      + '<span class="pn">'+p.name+'</span>'
+      + '<span class="pp">'+money(p.price)+'</span></button>';
+  }).join('');
+  return statusbar() + appbar(b.name, { action:cartBtn() }) + '<div class="content">'
+    + '<div class="chips">'
+    + '<button class="chip" aria-pressed="'+(S.catalogFilter==='fits')+'" data-act="set-filter" data-arg="fits">Available in my size</button>'
+    + '<button class="chip" aria-pressed="'+(S.catalogFilter==='all')+'" data-act="set-filter" data-arg="all">Everything</button>'
+    + '</div>'
+    + (shown.length ? '<div class="grid">'+cards+'</div>'
+      : alert('info','Nothing from '+b.name+' is in stock in EU '+recommend(brandId,m).label+' right now. Switch to Everything to see the rest.'))
+    + '</div>' + homeind();
+};
+function cartBtn(){
+  const n = S.cart.reduce((a,i)=>a+i.qty,0);
+  return '<button class="iconbtn" data-act="goto-cart" aria-label="Cart" style="position:relative">'+icon('cart')
+    + (n ? '<span style="position:absolute;top:2px;right:2px;min-width:17px;height:17px;border-radius:9px;background:var(--ember);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px">'+n+'</span>' : '')
+    + '</button>';
+}
+
+/* ---------- PRODUCT ---------- */
+SCREENS.product = (args) => {
+  const p = PRODUCTS.find(x => x.id === (args.id || S.activeProduct));
+  const b = BRANDS[p.brand];
+  const m = S.measurement;
+  const rec = (m && BRANDS[p.brand].mapped) ? recommend(p.brand, m, p.lastBias) : null;
+  const sizes = Object.keys(p.stock).sort((a,b) => euNum(a) - euNum(b));
+  const chosen = S.selectedSize || (rec && stockFor(p, rec.label) > 0 ? rec.label : null);
+  const soldOut = rec && stockFor(p, rec.label) === 0;
+  const notMade = rec && stockFor(p, rec.label) === null;
+
+  const chipRow = sizes.map(sz => {
+    const st = p.stock[sz];
+    return '<button class="chip" aria-pressed="'+(chosen===sz)+'"'+(st===0?' disabled':'')
+      + ' data-act="pick-size" data-arg="'+sz+'">EU '+sz+'</button>';
+  }).join('');
+
+  let fitBlock = '';
+  if (rec){
+    if (soldOut) fitBlock = alert('error','Your size, EU '+rec.label+', is sold out. The sizes left are more than 5 mm away from your foot.');
+    else if (notMade) fitBlock = alert('warning','This model is not produced in EU '+rec.label+'.');
+    else if (p.lastBias > 2) fitBlock = alert('warning','This model runs narrow. We already moved you up to EU '+rec.label+' \u2014 '+Math.round(62+Math.random()*8)+'% of users with your width did the same.');
+    else if (p.lastBias < -1) fitBlock = alert('info','Roomy last. EU '+rec.label+' accounts for it.');
+  }
+
+  return statusbar() + appbar(p.name, { action:cartBtn() }) + '<div class="content">'
+    + '<div class="pimg" style="aspect-ratio:16/9">'+shoeArt(p.id)+'<span class="shine"></span></div>'
+    + '<div><span style="font-size:10px;letter-spacing:.18em;color:var(--ink-3);font-weight:700">'+b.name.toUpperCase()+'</span>'
+    + '<h2 class="title" style="margin-top:5px;font-size:24px">'+p.name+'</h2>'
+    + '<div style="font-family:\'Sora\',sans-serif;font-size:21px;font-weight:600;margin-top:8px;letter-spacing:-.03em">'+money(p.price)+'</div></div>'
+    + (rec && !soldOut && !notMade ? '<span class="badge '+(rec.fit==='perfect'?'success':'warning')+'">'
+        + (rec.fit==='perfect'?'Fits your EU '+rec.label:FIT_LABEL[rec.fit])+'</span>' : '')
+    + (rec && !soldOut && !notMade ? fitScale(rec.fit) : '')
+    + fitBlock
+    + '<div class="sect">Size</div><div class="chips">'+chipRow+'</div>'
+    + '<div class="spacer"></div>'
+    + (soldOut || notMade
+      ? btn('Notify me when EU '+rec.label+' is back','primary','notify-size',{ data:p.id })
+        + btn('Show '+b.name+' styles that fit','tertiary','open-catalog',{ data:p.brand })
+      : btn(chosen ? 'Add EU '+chosen+' to cart' : 'Choose a size','accent','add-cart',{ data:p.id, disabled:!chosen })
+        + btn('Why this size for me?','tertiary','open-brand',{ data:p.brand }))
+    + '</div>' + homeind();
+};
+
+/* ---------- CART / CHECKOUT ---------- */
+SCREENS.cart = () => {
+  if (!S.cart.length) return statusbar() + appbar('Cart') + '<div class="content">'
+    + '<div class="spacer"></div>'
+    + '<div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">'
+    + '<div class="dot" style="width:64px;height:64px">'+icon('cart',28)+'</div>'
+    + '<b style="font-size:18px">Your cart is empty</b>'
+    + '<p class="sub">Everything you add is already matched to your scan.</p>'
+    + btn('Browse brands','accent','goto-brands')+'</div>'
+    + '<div class="spacer"></div></div>' + homeind();
+
+  const items = S.cart.map((i,idx) => {
+    const p = PRODUCTS.find(x=>x.id===i.id);
+    return '<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px">'
+      + '<span class="pimg" style="width:74px;height:56px;aspect-ratio:auto;flex:0 0 auto;padding:4px">'+shoeArt(p.id,{thin:true})+'</span>'
+      + '<span style="flex:1;min-width:0"><b style="display:block;font-size:14px;font-weight:600">'+p.name+'</b>'
+      + '<span style="display:block;font-size:12px;color:var(--ink-2);margin-top:2px">EU '+i.size+' \u00b7 matched to your scan</span>'
+      + '<span style="display:inline-flex;gap:6px;margin-top:8px;align-items:center">'
+      + '<button class="btn sm btn-secondary" style="width:30px;padding:0;height:28px" data-act="qty" data-arg="'+idx+':-1">\u2212</button>'
+      + '<b style="font-size:14px;min-width:16px;text-align:center">'+i.qty+'</b>'
+      + '<button class="btn sm btn-secondary" style="width:30px;padding:0;height:28px" data-act="qty" data-arg="'+idx+':1">+</button>'
+      + '</span></span>'
+      + '<b style="font-size:14px;white-space:nowrap">'+money(p.price*i.qty)+'</b></div>';
+  }).join('');
+
+  const sub = cartTotal(), del = deliveryFee();
+  return statusbar() + appbar('Cart') + '<div class="content">'
+    + items
+    + (S.measurement ? alert('success','Every size in this cart came from your '+S.measurement.date+' scan.') : '')
+    + '<div class="spacer"></div>'
+    + kv('Subtotal', money(sub)) + kv('Delivery', del ? money(del) : 'Free')
+    + kv('Total', money(sub+del), true)
+    + btn('Checkout','accent','goto-checkout')
+    + '</div>' + homeind();
+};
+function kv(l,v,bold){
+  return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px'+(bold?';padding-top:8px;border-top:1px solid var(--hair)':'')+'">'
+    + '<span style="font-size:'+(bold?'16px;font-weight:700':'14px;color:var(--ink-2)')+'">'+l+'</span>'
+    + '<span style="font-size:'+(bold?'17px;font-weight:800':'14px;font-weight:600')+'">'+v+'</span></div>';
+}
+
+SCREENS.checkout = () => {
+  const sub = cartTotal(), del = deliveryFee();
+  const pay = S.payMethod || 'cod';
+  const methods = [['cod','Cash on delivery','Pay the courier when it arrives'],
+                   ['card','Card','Visa \u00b7 Mastercard \u00b7 Meeza'],
+                   ['instapay','InstaPay','Transfer from your bank app']];
+  return statusbar() + appbar('Checkout') + '<div class="content">'
+    + '<div class="sect">Delivery</div>'
+    + row({ title:S.account ? S.account.name : 'Guest order', sub:'6th of October City, Giza \u00b7 2\u20134 days', icon:'home', act:'noop' })
+    + '<div class="sect">Payment</div>'
+    + methods.map(mth => '<button class="opt" role="radio" aria-checked="'+(pay===mth[0])+'" data-act="pick-pay" data-arg="'+mth[0]+'">'
+        + '<span class="rad"></span><span class="ot"><b>'+mth[1]+'</b><span>'+mth[2]+'</span></span></button>').join('')
+    + (!S.account ? alert('warning','Guest checkout works, but you will not be able to track this order after you close the app.') : '')
+    + '<div class="spacer"></div>'
+    + kv('Subtotal', money(sub)) + kv('Delivery', del?money(del):'Free') + kv('Total', money(sub+del), true)
+    + btn('Place order','accent','place-order')
+    + '</div>' + homeind();
+};
+
+SCREENS.orderDone = (args) => {
+  const o = S.orders.find(x=>x.id===args.id) || S.orders[S.orders.length-1];
+  return statusbar() + '<div class="content center">'
+    + '<div class="dot" style="width:92px;height:92px;border-radius:30px">'+icon('check',42,'aqua')+'</div>'
+    + '<h2 class="title">Order placed</h2>'
+    + '<p class="sub">Order '+o.id+' \u00b7 arriving in 2\u20134 days. We will ask how they fit once they land \u2014 that answer sharpens your next recommendation.</p>'
+    + '<div class="card" style="width:100%;text-align:left">'
+    + o.items.map(i => { const p = PRODUCTS.find(x=>x.id===i.id);
+        return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">'
+        + '<span>'+p.name+' \u00b7 EU '+i.size+' \u00d7'+i.qty+'</span><b>'+money(p.price*i.qty)+'</b></div>'; }).join('')
+    + '</div>'
+    + '<div class="spacer"></div>'
+    + btn('Rate the fit now','accent','goto-feedback',{ data:o.id })
+    + btn('Back to home','tertiary','goto-home')
+    + '</div>' + homeind();
+};
+
+/* ---------- FEEDBACK (the learning loop) ---------- */
+SCREENS.feedback = (args) => {
+  const o = S.orders.find(x=>x.id===args.id) || S.orders[S.orders.length-1];
+  const item = o.items[0];
+  const p = PRODUCTS.find(x=>x.id===item.id);
+  const b = BRANDS[p.brand];
+  const picked = S.feedbackPick || null;
+  const preview = picked ? round1((S.brandOffset[p.brand]||0) + FEEDBACK_SHIFT[picked]) : null;
+  return statusbar() + appbar('How did they fit?') + '<div class="content">'
+    + '<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px">'
+    + '<span class="pimg" style="width:74px;height:56px;aspect-ratio:auto;flex:0 0 auto;padding:4px">'+shoeArt(p.id,{thin:true})+'</span>'
+    + '<span><b style="display:block;font-size:14px">'+p.name+'</b>'
+    + '<span style="display:block;font-size:12px;color:var(--ink-2)">You bought EU '+item.size+'</span></span></div>'
+    + FIT_ORDER.map(f => '<button class="opt" role="radio" aria-checked="'+(picked===f)+'" data-act="pick-feedback" data-arg="'+f+'">'
+        + '<span class="rad"></span><span class="ot"><b>'+FIT_LABEL[f].replace(/ \u2014.*/,'')+'</b></span></button>').join('')
+    + (picked && FEEDBACK_SHIFT[picked] !== 0
+        ? alert('info','This will shift every future '+b.name+' recommendation by '+(FEEDBACK_SHIFT[picked]>0?'+':'')+FEEDBACK_SHIFT[picked]+' mm, taking your '+b.name+' offset to '+(preview>0?'+':'')+preview+' mm.')
+        : picked ? alert('success','Nothing to change \u2014 we will keep sizing '+b.name+' the way we did.') : '')
+    + '<div class="spacer"></div>'
+    + btn('Submit feedback','accent','submit-feedback',{ data:p.brand, disabled:!picked })
+    + btn('Skip','tertiary','goto-home')
+    + '</div>' + homeind();
+};
+
+/* ---------- PROFILE ---------- */
+SCREENS.profile = () => {
+  const acct = S.account;
+  return statusbar() + '<div class="content">'
+    + '<div style="display:flex;gap:12px;align-items:center">'
+    + '<span style="width:52px;height:52px;border-radius:50%;background:rgba(45,227,200,.12);color:var(--aqua);display:grid;place-items:center;font-weight:800;font-size:18px">'
+    + (acct ? acct.name.slice(0,2).toUpperCase() : icon('user',24)) + '</span>'
+    + '<span style="flex:1"><b style="display:block;font-size:19px">'+(acct?esc(acct.name):'Guest')+'</b>'
+    + '<span style="display:block;font-size:12px;color:var(--ink-2);margin-top:2px">'
+    + (acct ? '+20 '+esc(acct.phone) : 'Not signed in \u2014 data lives on this phone only')+'</span></span></div>'
+    + (!acct ? alert('warning','Create an account and your scan, sizes and orders move across with you.') : '')
+    + '<div class="sect">My feet</div>'
+    + row({ title:'Measurement history', sub:S.history.length+' scan'+(S.history.length===1?'':'s'), icon:'clock', act:'goto-history' })
+    + row({ title:'Fit preference', value:FIT_LABEL[S.prefs.fit].replace(/ \u2014.*/,''), icon:'ruler', act:'open-fitpref' })
+    + '<div class="sect">Account</div>'
+    + row({ title:'Orders', sub:S.orders.length ? S.orders.length+' order'+(S.orders.length===1?'':'s') : 'None yet', icon:'cart', act:S.orders.length?'goto-feedback':'noop' })
+    + row({ title:'Language', value:(LANG==='ar'?'\u0627\u0644\u0639\u0631\u0628\u064a\u0629':'English'), icon:'globe', act:'toggle-lang' })
+    + row({ title:'Privacy & data', sub:'Export or delete everything', icon:'lock', act:'goto-privacy' })
+    + '<div class="spacer"></div>'
+    + (acct ? btn('Sign out','tertiary','sign-out') : btn('Create an account','accent','goto-auth'))
+    + '</div>' + tabbar('profile') + homeind();
+};
+
+SCREENS.history = () => statusbar() + appbar('Measurement history') + '<div class="content">'
+  + (S.history.length
+    ? S.history.slice().reverse().map((h,i) => row({
+        title:h.date + (i===0?' \u00b7 current':''),
+        sub:h.right.L+' mm \u00d7 '+h.right.W+' mm \u00b7 '+REF_OBJECTS[h.refObj].name,
+        value:h.confidence+'%', icon:'ruler' })).join('')
+    : alert('info','No scans yet.'))
+  + (S.history.length>1 ? alert('info','Length changed by '+round1(Math.abs(S.history[S.history.length-1].right.L - S.history[0].right.L))+' mm across your scans. Feet change slowly \u2014 a big jump usually means a bad scan, not a bigger foot.') : '')
+  + '<div class="spacer"></div>'
+  + btn('New scan','accent','goto-scan')
+  + '</div>' + homeind();
+
+SCREENS.privacy = () => statusbar() + appbar('Privacy & data') + '<div class="content">'
+  + '<div class="sect">How we use your data</div>'
+  + row({ title:'Improve my recommendations', sub:'Uses your fit feedback only', icon:'sparkle', toggle:S.prefs.improveRecs, act:'toggle-recs' })
+  + row({ title:'Anonymised size analytics', sub:'Shared with brands, never identifiable', icon:'tag', toggle:S.prefs.shareAnalytics, act:'toggle-analytics' })
+  + '<div class="sect">Your rights</div>'
+  + row({ title:'Export my data', sub:'Downloads a real JSON file', icon:'download', act:'export-data' })
+  + row({ title:'Delete my measurements', sub:'Keeps your account and orders', icon:'trash', act:'confirm-delete-m' })
+  + row({ title:'Delete my account', sub:'Removes everything permanently', icon:'trash', act:'confirm-delete-a' })
+  + alert('info','Handled under Egypt PDPL and GDPR. Requests complete within 30 days.')
+  + '</div>' + homeind();
+
+/* ---------- SHEETS ---------- */
+const SHEETS = {
+  guestGate: () => '<span class="handle"></span>'
+    + '<h2 class="title" style="font-size:20px">Save this to an account?</h2>'
+    + '<p class="sub">Guest measurements live only on this phone. Create an account and your scan moves across automatically.</p>'
+    + btn('Create account','accent','goto-auth')
+    + btn('Keep browsing as guest','tertiary','sheet-dismiss'),
+  deleteM: () => '<span class="handle"></span>'
+    + '<h2 class="title" style="font-size:20px">Delete your measurements?</h2>'
+    + '<p class="sub">Size recommendations stop working until you scan again. Orders and account stay untouched.</p>'
+    + btn('Delete measurements','destructive','do-delete-m')
+    + btn('Cancel','tertiary','sheet-dismiss'),
+  deleteA: () => '<span class="handle"></span>'
+    + '<h2 class="title" style="font-size:20px">Delete your account?</h2>'
+    + '<p class="sub">Measurements, sizes, orders and fit history are removed permanently. This cannot be undone.</p>'
+    + btn('Delete everything','destructive','do-delete-a')
+    + btn('Cancel','tertiary','sheet-dismiss'),
+  fitPref: () => '<span class="handle"></span>'
+    + '<h2 class="title" style="font-size:20px">How do you like shoes to fit?</h2>'
+    + '<p class="sub">We bias every recommendation toward this.</p>'
+    + ['snug','perfect','loose'].map(f => '<button class="opt" role="radio" aria-checked="'+(S.prefs.fit===f)+'" data-act="set-fitpref" data-arg="'+f+'">'
+        + '<span class="rad"></span><span class="ot"><b>'+FIT_LABEL[f].replace(/ \u2014.*/,'')+'</b></span></button>').join('')
+    + btn('Done','tertiary','sheet-dismiss')
+};
+
+/* ============================================================
+   8. ACTIONS
+   ============================================================ */
+const ACTIONS = {
+  back:() => back(),
+  noop:() => {},
+  'toggle-lang':() => setLang(LANG==='ar'?'en':'ar'),
+  'sheet-dismiss':() => closeSheet(),
+  'goto-home':() => { S.ui.tab='home'; reset('home'); },
+  'goto-scan':() => { S.ui.tab='scan'; go('scanIntro'); },
+  'goto-sizes':() => { S.ui.tab='sizes'; go('sizes'); },
+  'goto-brands':() => { S.ui.tab='brands'; go('brands'); },
+  'goto-auth':() => { closeSheet(); go('authPhone'); },
+  'goto-ref':() => go('refObject'),
+  'goto-capture':() => go('capture',{ args:{ foot:'right' } }),
+  'goto-measurements':() => go('measurements'),
+  'goto-history':() => go('history'),
+  'goto-privacy':() => go('privacy'),
+  'goto-cart':() => go('cart'),
+  'goto-checkout':() => go('checkout'),
+  'goto-feedback':(a) => go('feedback',{ args:{ id:a } }),
+  'guest-mode':() => { S.account=null; toast('Continuing as guest'); reset('home'); },
+
+  /* auth */
+  'send-code':() => {
+    const v = (document.getElementById('phoneInput').value||'').replace(/\D/g,'');
+    if (v.length < 10){ S.auth.error='Enter a valid Egyptian mobile number.'; render('none'); return; }
+    S.auth.phone=v; S.auth.error=null; S.auth.attempts=0;
+    S.auth.code=String(Math.floor(100000+Math.random()*900000));
+    go('authOtp');
+  },
+  'resend-code':() => { S.auth.code=String(Math.floor(100000+Math.random()*900000)); S.auth.error=null;
+    S.auth.attempts=0; S.auth.lockedUntil=0; toast('New code sent'); render('none'); },
+  'verify-code':() => {
+    const entered = Array.from(document.querySelectorAll('[data-otp]')).map(i=>i.value).join('');
+    if (entered === S.auth.code){ S.auth.error=null; go('authName'); return; }
+    S.auth.attempts++;
+    if (S.auth.attempts >= 3){
+      S.auth.lockedUntil = Date.now()+30000;
+      S.auth.error='Incorrect code.';
+      setTimeout(()=>{ S.auth.lockedUntil=0; S.auth.attempts=0; S.auth.error=null; render('none'); },30000);
+    } else S.auth.error='That code is incorrect.';
+    render('none');
+  },
+  'finish-auth':() => {
+    const n = (document.getElementById('nameInput').value||'').trim() || 'You';
+    const migrated = !!S.measurement;
+    S.account = { name:n, phone:S.auth.phone };
+    toast(migrated ? 'Account created \u00b7 measurement migrated' : 'Account created','success');
+    S.ui.tab='home'; reset('home');
+  },
+  'sign-out':() => { S.account=null; toast('Signed out'); S.ui.tab='home'; reset('home'); },
+
+  /* scan */
+  'ask-camera':() => { if (S.cameraGranted===true) go('refObject'); else go('cameraPermission'); },
+  'grant-camera':() => { S.cameraGranted=true; go('refObject',{ replace:true }); },
+  'deny-camera':() => { S.cameraGranted=false; go('cameraDenied',{ replace:true }); },
+  'manual-size':() => { toast('Manual entry is out of scope in this build'); },
+  'pick-ref':(a) => { S.scan.refObj=a; render('none'); },
+  'pick-surface':(a) => { S.scan.surface=a; render('none'); },
+  'cancel-scan':() => { S.ui.tab='home'; reset('home'); },
+  'capture-right':() => { go('capture',{ args:{ foot:'left' }, replace:true }); },
+  'capture-left':() => { go('processing',{ replace:true }); runProcessing(); },
+
+  'accept-measurement':() => { commitMeasurement(); },
+  'accept-low':() => { commitMeasurement(); },
+
+  /* sizes & shopping */
+  'open-brand':(a) => { S.activeBrand=a; go('brandDetail',{ args:{ brand:a } }); },
+  'open-catalog':(a) => { S.catalogBrand=a; S.catalogFilter='fits'; go('catalog',{ args:{ brand:a } }); },
+  'set-filter':(a) => { S.catalogFilter=a; render('none'); },
+  'open-product':(a) => { S.activeProduct=a; S.selectedSize=null; go('product',{ args:{ id:a } }); },
+  'pick-size':(a) => { S.selectedSize=a; render('none'); },
+  'notify-brand':(a) => { toast('We will notify you when '+BRANDS[a].name+' is mapped','success'); },
+  'notify-size':() => { toast('We will alert you when your size is back','success'); },
+  'add-cart':(a) => {
+    const p = PRODUCTS.find(x=>x.id===a);
+    const size = S.selectedSize || recommend(p.brand,S.measurement,p.lastBias).label;
+    const ex = S.cart.find(i=>i.id===a && i.size===size);
+    if (ex) ex.qty++; else S.cart.push({ id:a, size:size, qty:1, price:p.price });
+    toast('Added EU '+size+' to cart','success'); render('none');
+  },
+  'qty':(a) => {
+    const parts = a.split(':'), idx = +parts[0], d = +parts[1];
+    S.cart[idx].qty += d;
+    if (S.cart[idx].qty <= 0) S.cart.splice(idx,1);
+    render('none');
+  },
+  'pick-pay':(a) => { S.payMethod=a; render('none'); },
+  'place-order':() => {
+    const id = 'TA-'+Math.floor(10000+Math.random()*89999);
+    S.orders.push({ id:id, items:S.cart.slice(), total:cartTotal()+deliveryFee(), date:new Date().toISOString().slice(0,10) });
+    S.cart=[]; go('orderDone',{ args:{ id:id }, fade:true });
+  },
+
+  /* feedback loop */
+  'pick-feedback':(a) => { S.feedbackPick=a; render('none'); },
+  'submit-feedback':(a) => {
+    const r = applyFeedback(a, S.feedbackPick);
+    S.feedbackPick=null;
+    toast(r.changed ? BRANDS[a].name+' sizing updated \u00b7 offset '+(r.after>0?'+':'')+r.after+' mm'
+                    : 'Thanks \u2014 no change needed','success');
+    S.ui.tab='sizes'; reset('sizes');
+  },
+
+  /* privacy */
+  'toggle-recs':() => { S.prefs.improveRecs=!S.prefs.improveRecs; render('none'); },
+  'toggle-analytics':() => { S.prefs.shareAnalytics=!S.prefs.shareAnalytics; render('none'); },
+  'open-fitpref':() => openSheet(SHEETS.fitPref),
+  'set-fitpref':(a) => { S.prefs.fit=a; closeSheet(); toast('Fit preference saved'); },
+  'confirm-delete-m':() => openSheet(SHEETS.deleteM),
+  'confirm-delete-a':() => openSheet(SHEETS.deleteA),
+  'do-delete-m':() => { S.measurement=null; S.history=[]; S.brandOffset={}; closeSheet();
+    toast('Measurements deleted','success'); S.ui.tab='home'; reset('home'); },
+  'do-delete-a':() => { S = initialState(); closeSheet(); toast('Account deleted','success'); reset('home'); },
+  'export-data':() => {
+    const payload = { account:S.account, measurement:S.measurement, history:S.history,
+      brandOffsets:S.brandOffset, orders:S.orders, prefs:S.prefs, exportedAt:new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(payload,null,2)],{ type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'tailored-my-data.json'; a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Data exported','success');
+  }
+};
+
+function commitMeasurement(){
+  const m = S.measurement;
+  if (!S.account){
+    S.history.push(m);
+    openSheet(SHEETS.guestGate);
+    S.ui.tab='sizes'; stack=[{name:'sizes',args:{}}];
+    render('none');
+    return;
+  }
+  S.history.push(m);
+  toast(m.accepted ? 'Measurement saved' : 'Saved with low confidence', m.accepted?'success':'');
+  S.ui.tab='sizes'; reset('sizes');
+}
+
+function runProcessing(){
+  const steps = ['Detecting foot outline','Calibrating against '+REF_OBJECTS[S.scan.refObj].name.toLowerCase(),
+                 'Correcting camera perspective','Measuring length and width','Scoring confidence'];
+  let pct = 4, i = 0;
+  const t = setInterval(() => {
+    pct += 6 + Math.random()*7;
+    const bar = document.getElementById('procBar'), st = document.getElementById('procStep');
+    if (!bar){ clearInterval(t); return; }
+    bar.style.width = Math.min(100,pct)+'%';
+    const ni = Math.min(steps.length-1, Math.floor(pct/21));
+    if (ni !== i){ i = ni; st.textContent = tr(steps[i]); }
+    if (pct >= 100){
+      clearInterval(t);
+      S.measurement = simulateMeasurement(S.scan);
+      go('result',{ replace:true, fade:true });
+    }
+  }, 190);
+}
+
+/* ============================================================
+   9. EVENTS
+   ============================================================ */
+document.addEventListener('click', e => {
+  const tab = e.target.closest('[data-tab]');
+  if (tab){
+    const t = tab.getAttribute('data-tab');
+    S.ui.tab = t;
+    const map = { home:'home', scan:'scanIntro', sizes:'sizes', brands:'brands', profile:'profile' };
+    closeSheet(); reset(map[t]); return;
+  }
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.getAttribute('data-act');
+  if (act === 'sheet-dismiss' && e.target.closest('.sheet') && el.classList.contains('scrim')) return;
+  const fn = ACTIONS[act];
+  if (fn){ e.preventDefault(); fn(el.getAttribute('data-arg')); }
+});
+document.addEventListener('input', e => {
+  if (e.target.matches('[data-otp]')){
+    const i = +e.target.getAttribute('data-otp');
+    e.target.value = e.target.value.replace(/\D/g,'').slice(0,1);
+    if (e.target.value && i < 5){
+      const n = document.querySelector('[data-otp="'+(i+1)+'"]'); if (n) n.focus();
+    }
+  }
+});
+
+/* ============================================================
+   10. DEMO CONTROL PANEL — the part a Figma prototype can't do
+   ============================================================ */
+function renderPanel(){
+  const p = document.getElementById('panel');
+  const conf = computeScanConfidence(S.scan);
+  const m = S.measurement;
+  const col = conf >= 80 ? '#2DE3C8' : conf >= 62 ? '#F2B441' : '#FF8A94';
+  p.innerHTML =
+    '<button class="panel-close" data-env="close">Close</button>'
+  + '<h1><b>tAIlored</b><small>Interactive prototype \u00b7 32 screens, live sizing engine, real confidence branching</small></h1>'
+  + '<div class="demo-bar"><span><b>Concept demo.</b> The scan is simulated and nothing is ordered or charged. Brand names belong to their owners; no affiliation.</span></div>'
+  + '<div class="toplinks"><a href="../?lang='+LANG+'">Back to the website</a>'
+  + '<button data-env="lang-en" class="'+(LANG==='en'?'on':'')+'" lang="en">English</button>'
+  + '<button data-env="lang-ar" class="'+(LANG==='ar'?'on':'')+'" lang="ar">\u0639\u0631\u0628\u064a</button></div>'
+
+  + '<div class="pbox"><h3>Scan conditions</h3>'
+  + '<div class="prow"><span>Lighting</span><b>'+S.scan.light+'%</b></div>'
+  + '<input class="slider" type="range" min="10" max="100" value="'+S.scan.light+'" data-ctl="light">'
+  + '<div class="prow"><span>Steadiness</span><b>'+S.scan.steady+'%</b></div>'
+  + '<input class="slider" type="range" min="10" max="100" value="'+S.scan.steady+'" data-ctl="steady">'
+  + '<div class="prow" style="border-top:1px solid var(--hair);margin-top:10px;padding-top:12px">'
+  + '<span>Predicted confidence</span><b style="color:'+col+';font-size:15px">'+conf+'%</b></div>'
+  + '<p class="hint">Drag these and re-scan. The point cloud thins out, the measurement error widens, and below '+CONFIDENCE_THRESHOLD+'% the app takes the low-confidence branch.</p></div>'
+
+  + '<div class="pbox"><h3>Session state</h3>'
+  + '<div class="prow"><span>Account</span><b>'+(S.account?esc(S.account.name):'Guest')+'</b></div>'
+  + '<div class="prow"><span>Measurement</span><b>'+(m?m.right.L+' mm \u00b7 '+m.confidence+'%':'none')+'</b></div>'
+  + '<div class="prow"><span>Cart</span><b>'+S.cart.reduce((a,i)=>a+i.qty,0)+'</b></div>'
+  + '<div class="prow"><span>Orders</span><b>'+S.orders.length+'</b></div>'
+  + '<div class="prow"><span>Learned offsets</span><b>'+(Object.keys(S.brandOffset).length
+      ? Object.keys(S.brandOffset).map(k=>BRANDS[k].name+' '+(S.brandOffset[k]>0?'+':'')+S.brandOffset[k]).join(', ')
+      : 'none')+'</b></div></div>'
+
+  + '<div class="pbox"><h3>Jump to a scenario</h3><div class="flowlist">'
+  + [['Happy path \u2014 scan to purchase','sc-happy'],
+     ['Low-confidence scan branch','sc-low'],
+     ['Camera permission denied','sc-denied'],
+     ['Guest gate \u2192 account migration','sc-guest'],
+     ['Sold out in your size','sc-stock'],
+     ['Unmapped brand','sc-unmapped'],
+     ['Fit feedback retunes sizing','sc-feedback'],
+     ['Privacy \u2014 export & delete','sc-privacy']].map(s =>
+      '<button class="pbtn" data-scn="'+s[1]+'">'+s[0]+'</button>').join('')
+  + '</div></div>'
+
+  + '<div class="pbox"><h3>Environment</h3><div class="pgrid">'
+  + '<button class="pbtn '+(S.ui.reduceMotion?'on':'')+'" data-env="motion">Reduce motion</button>'
+  + '<button class="pbtn" data-env="reset">Reset session</button>'
+  + '</div></div>';
+  localize(p);
+  const tl = document.getElementById('panelToggleLbl'); if (tl) tl.textContent = tr('Demo controls');
+}
+
+document.addEventListener('input', e => {
+  const c = e.target.getAttribute && e.target.getAttribute('data-ctl');
+  if (!c) return;
+  S.scan[c] = +e.target.value;
+  renderPanel();
+  const n = current().name;
+  if (n === 'capture' || n === 'home') render('none');
+});
+document.addEventListener('click', e => {
+  const env = e.target.closest('[data-env]');
+  if (env){
+    const k = env.getAttribute('data-env');
+    if (k === 'motion'){
+      S.ui.reduceMotion = !S.ui.reduceMotion;
+      document.body.classList.toggle('calm', S.ui.reduceMotion);
+      renderPanel();
+    }
+    if (k === 'reset'){ S = initialState(); toast('Session reset'); reset('home'); }
+    if (k === 'lang-en') setLang('en');
+    if (k === 'lang-ar') setLang('ar');
+    if (k === 'close') document.body.classList.remove('panel-open');
+    return;
+  }
+  const scn = e.target.closest('[data-scn]');
+  if (scn){ runScenario(scn.getAttribute('data-scn')); document.body.classList.remove('panel-open'); }
+  if (e.target.closest('#panelToggle')) document.body.classList.add('panel-open');
+});
+
+function seedMeasurement(quality){
+  S.scan.light = quality==='low' ? 54 : 82;
+  S.scan.steady = quality==='low' ? 58 : 88;
+  S.scan.refObj = quality==='low' ? 'coin' : 'card';
+  S.scan.surface = quality==='low' ? 'carpet' : 'hard';
+  S.measurement = simulateMeasurement(S.scan);
+  S.history = [S.measurement];
+  S.cameraGranted = true;
+}
+function runScenario(id){
+  const rm = S.ui.reduceMotion; S = initialState(); S.ui.reduceMotion = rm; dismissSheet();
+  if (id==='sc-happy'){ S.account={name:'Hatem G.',phone:'10 1234 5678'}; reset('home'); toast('Start with Measure \u2192 scan'); }
+  if (id==='sc-low'){ S.account={name:'Hatem G.',phone:'10 1234 5678'};
+    S.scan={light:54,steady:58,refObj:'coin',surface:'carpet'}; S.cameraGranted=true;
+    reset('capture'); stack=[{name:'capture',args:{foot:'left'}}]; render('enter-fade');
+    toast('Capture now \u2014 confidence will land below 80%'); }
+  if (id==='sc-denied'){ S.cameraGranted=false; reset('cameraDenied'); }
+  if (id==='sc-guest'){ S.account=null; seedMeasurement('good'); S.measurement.accepted=true;
+    reset('sizes'); openSheet(SHEETS.guestGate); }
+  if (id==='sc-stock'){ S.account={name:'Hatem G.',phone:'10 1234 5678'}; seedMeasurement('good');
+    S.activeProduct='dunk'; reset('product'); stack=[{name:'product',args:{id:'dunk'}}]; render('enter-fade'); }
+  if (id==='sc-unmapped'){ S.account={name:'Hatem G.',phone:'10 1234 5678'}; seedMeasurement('good');
+    reset('brandDetail'); stack=[{name:'brandDetail',args:{brand:'puma'}}]; render('enter-fade'); }
+  if (id==='sc-feedback'){ S.account={name:'Hatem G.',phone:'10 1234 5678'}; seedMeasurement('good');
+    S.orders=[{id:'TA-48219',items:[{id:'peg41',size:recommend('nike',S.measurement).label,qty:1,price:4850}],total:4910,date:S.measurement.date}];
+    reset('feedback'); stack=[{name:'feedback',args:{id:'TA-48219'}}]; render('enter-fade');
+    toast('Pick a fit \u2014 watch the Nike offset change'); }
+  if (id==='sc-privacy'){ S.account={name:'Hatem G.',phone:'10 1234 5678'}; seedMeasurement('good'); reset('privacy'); }
+}
+
+/* ============================================================
+   11. BOOT
+   ============================================================ */
+stack = [{ name:'home', args:{} }];
+render('enter-fade');
+
+</script>
+</body>
+</html>

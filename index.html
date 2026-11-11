@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>tAIlored — your shoe size in every brand</title>
+<meta name="description" content="tAIlored measures your feet with your phone camera and tells you your size in every brand. Try the interactive prototype.">
+<meta name="theme-color" content="#0f5c56">
+<meta property="og:type" content="website">
+<meta property="og:title" content="tAIlored — your shoe size in every brand, before you order">
+<meta property="og:description" content="An AI foot-measurement concept for Egypt and MENA. Try the interactive prototype in your browser.">
+<meta property="og:image" content="https://hatemghazy.github.io/tailored/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://hatemghazy.github.io/tailored/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0f5c56; --teal-deep:#0a3f3b; --teal-ink:#06302d; --teal-wash:#eaf6f4; --teal-line:#bfdcd8;
+  --ember:#d9714e; --ember-deep:#c85a34;
+  --ink:#16201f; --ink-2:#4f5e5c; --ink-3:#7b8a88;
+  --paper:#ffffff; --mist:#f3f7f6; --hair:#dfe7e5;
+  --display:'Sora','IBM Plex Sans Arabic',system-ui,sans-serif;
+  --body:'IBM Plex Sans Arabic','Sora',system-ui,sans-serif;
+  --wrap:1160px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+[dir=rtl] body{font-size:18px;line-height:1.75}
+a{color:inherit}
+img,svg{display:block}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ember);outline-offset:3px;border-radius:6px}
+.wrap{width:min(var(--wrap),100% - 40px);margin-inline:auto}
+.skip{position:absolute;inset-inline-start:-999px;top:8px;background:var(--teal);color:#fff;padding:10px 14px;border-radius:8px;z-index:99}
+.skip:focus{inset-inline-start:12px}
+
+/* ---------- type ---------- */
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-.025em;line-height:1.12}
+[dir=rtl] h1,[dir=rtl] h2,[dir=rtl] h3{letter-spacing:0;line-height:1.3;font-weight:700}
+h1{font-size:clamp(40px,6.2vw,76px);letter-spacing:-.04em}
+[dir=rtl] h1{font-size:clamp(36px,5.2vw,64px)}
+h2{font-size:clamp(30px,3.8vw,46px)}
+h3{font-size:20px;letter-spacing:-.01em;line-height:1.3}
+.lede{font-size:clamp(18px,1.6vw,21px);color:var(--ink-2);max-width:34em}
+p{max-width:38em}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:54px;padding:0 26px;
+  border-radius:16px;font-weight:600;font-size:16px;text-decoration:none;border:0;cursor:pointer;white-space:nowrap;
+  transition:transform .2s cubic-bezier(.34,1.4,.44,1),background .2s,box-shadow .2s}
+.btn:active{transform:scale(.97)}
+.btn-ember{background:var(--ember);color:#fff;box-shadow:0 12px 28px -14px rgba(217,113,78,.9)}
+.btn-ember:hover{background:var(--ember-deep)}
+.btn-ghost{background:transparent;color:var(--teal);box-shadow:inset 0 0 0 1.5px var(--teal-line)}
+.btn-ghost:hover{box-shadow:inset 0 0 0 1.5px var(--teal);background:var(--teal-wash)}
+.btn-light{background:#fff;color:var(--teal-ink)}
+.btn-light:hover{background:var(--teal-wash)}
+.btn svg{width:18px;height:18px}
+[dir=rtl] .btn .flip{transform:scaleX(-1)}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-filter:saturate(1.4) blur(14px);
+  border-bottom:1px solid transparent;transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--hair)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:68px}
+.logo{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.04em;text-decoration:none;color:var(--teal-ink);direction:ltr}
+.logo b{color:var(--ember);font-weight:700}
+.nav .links{display:flex;gap:26px;margin-inline-start:auto;font-size:15px;color:var(--ink-2)}
+.nav .links a{text-decoration:none}
+.nav .links a:hover{color:var(--teal)}
+.lang{height:40px;padding:0 14px;border-radius:12px;border:1.5px solid var(--hair);background:#fff;cursor:pointer;font-weight:600;font-size:15px}
+.lang:hover{border-color:var(--teal)}
+.nav .btn{height:42px;padding:0 18px;font-size:15px;border-radius:12px}
+@media (max-width:860px){ .nav .links{display:none} .lang{margin-inline-start:auto} }
+@media (max-width:420px){ .nav .btn{display:none} }
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;padding:56px 0 40px}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero h1{max-width:11.5em}
+.hero .lede{margin-top:22px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.honest{display:flex;gap:10px;align-items:flex-start;margin-top:26px;font-size:14px;color:var(--ink-3);max-width:30em;line-height:1.5}
+.honest svg{flex:0 0 auto;width:18px;height:18px;margin-top:1px;color:var(--teal)}
+.drawing{position:relative;justify-self:center;width:min(100%,430px)}
+.drawing svg{width:100%;height:auto;overflow:visible}
+.drawing .lbl{font-family:var(--body);font-size:13px;fill:var(--ink-3)}
+.drawing .num{font-family:'Sora',sans-serif;font-size:22px;font-weight:600;fill:var(--teal-ink);letter-spacing:-.02em}
+.drawing .num tspan{font-size:13px;font-weight:500;fill:var(--ink-3)}
+.dim{stroke:var(--ember);stroke-width:1.5;fill:none}
+.dim-draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1.3s cubic-bezier(.65,0,.35,1) forwards}
+.dim-draw.d2{animation-delay:.55s}
+.fade-in{opacity:0;animation:fade .6s ease forwards}
+.fade-in.t1{animation-delay:1.1s}.fade-in.t2{animation-delay:1.5s}.fade-in.t3{animation-delay:1.8s}
+.contour{stroke:var(--teal);fill:none}
+.scanline{animation:sweep 3.2s cubic-bezier(.45,0,.55,1) .2s 1 forwards;opacity:0}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:1}}
+@keyframes sweep{0%{opacity:0;transform:translateY(440px)}10%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(0)}}
+@media (max-width:900px){
+  .hero{padding-top:34px}
+  .hero .wrap{grid-template-columns:1fr}
+  .drawing{width:min(78%,320px);order:-1;margin-bottom:-6px}
+}
+
+/* ---------- sections ---------- */
+section{padding:96px 0}
+.sec-head{max-width:42em}
+.sec-head p{margin-top:16px;color:var(--ink-2);font-size:18px}
+@media (max-width:700px){ section{padding:68px 0} }
+
+/* problem */
+.problem{background:var(--mist)}
+.problem .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:52px}
+.problem .pt{border-top:2px solid var(--teal);padding-top:18px}
+.problem .pt p{margin-top:8px;color:var(--ink-2);font-size:16px}
+.sizes-strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.chip b{unicode-bidi:isolate;direction:ltr}
+.chip{display:inline-flex;align-items:baseline;gap:8px;padding:10px 16px;border-radius:12px;background:#fff;border:1px solid var(--hair);font-size:15px}
+.chip b{font-family:'Sora',sans-serif;color:var(--teal-ink)}
+.chip span{color:var(--ink-3);font-size:13px}
+@media (max-width:820px){ .problem .grid{grid-template-columns:1fr;gap:28px} }
+
+/* steps (a true sequence, so it is numbered) */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:56px;counter-reset:s;position:relative}
+.step{padding-inline-end:36px;position:relative}
+.step .n{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--teal);color:#fff;
+  font-family:'Sora',sans-serif;font-weight:600;font-size:17px;position:relative;z-index:1}
+.step::before{content:'';position:absolute;top:22px;inset-inline-start:44px;inset-inline-end:0;height:2px;
+  background:repeating-linear-gradient(90deg,var(--teal-line) 0 6px,transparent 6px 12px)}
+.step:last-child::before{display:none}
+.step h3{margin-top:22px}
+.step p{margin-top:8px;color:var(--ink-2);font-size:16px}
+@media (max-width:820px){
+  .steps{grid-template-columns:1fr;gap:34px}
+  .step{padding-inline-start:64px;padding-inline-end:0}
+  .step .n{position:absolute;inset-inline-start:0;top:0}
+  .step h3{margin-top:8px}
+  .step::before{top:44px;bottom:-34px;inset-inline-start:21px;inset-inline-end:auto;width:2px;height:auto;
+    background:repeating-linear-gradient(180deg,var(--teal-line) 0 6px,transparent 6px 12px)}
+}
+
+/* features */
+.features .layout{display:grid;grid-template-columns:.85fr 1.15fr;gap:64px;align-items:start}
+.features .sec-head{position:sticky;top:110px}
+.feat{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:26px 0;border-bottom:1px solid var(--hair)}
+.feat:first-child{padding-top:0}
+.feat:last-child{border-bottom:0}
+.feat .ic{width:52px;height:52px;border-radius:15px;background:var(--teal-wash);display:grid;place-items:center;color:var(--teal)}
+.feat .ic svg{width:26px;height:26px}
+.feat p{margin-top:6px;color:var(--ink-2);font-size:16px}
+.conf-demo{display:flex;align-items:center;gap:14px;margin-top:14px;direction:ltr}
+[dir=rtl] .conf-demo{justify-content:flex-end}
+.meter{flex:1;max-width:260px;height:10px;border-radius:99px;background:linear-gradient(90deg,#c13b3b 0 62%,#d08f2a 62% 80%,#2d9159 80%);position:relative}
+.meter i{position:absolute;top:-6px;width:3px;height:22px;background:var(--ink);border-radius:2px;left:80%}
+.meter-l{font-size:13px;color:var(--ink-3)}
+@media (max-width:900px){ .features .layout{grid-template-columns:1fr;gap:36px} .features .sec-head{position:static} }
+
+/* privacy */
+.privacy{background:var(--teal-ink);color:#e4efed}
+.privacy h2{color:#fff;max-width:16em}
+.privacy .sec-head p{color:#a9c4c0}
+.privacy .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:48px}
+.privacy .item{padding:24px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.privacy .item svg{width:28px;height:28px;color:#7fd6c8}
+.privacy .item h3{color:#fff;margin-top:16px;font-size:18px}
+.privacy .item p{margin-top:6px;color:#a9c4c0;font-size:15.5px}
+@media (max-width:820px){ .privacy .grid{grid-template-columns:1fr} }
+
+/* try */
+.try .layout{display:grid;grid-template-columns:1fr auto;gap:56px;align-items:center}
+.phone{width:351px;height:760px;border-radius:44px;background:#16181a;padding:9px;
+  box-shadow:0 50px 100px -40px rgba(6,48,45,.55),0 0 0 1px rgba(0,0,0,.06)}
+.phone .clip{width:333px;height:742px;border-radius:36px;overflow:hidden;background:#fff;position:relative}
+.phone iframe{width:390px;height:869px;border:0;transform:scale(.854);transform-origin:0 0;position:absolute;top:0;left:0}
+.scen{list-style:none;margin-top:28px;display:grid;gap:12px;max-width:30em}
+.scen li{display:flex;gap:14px;align-items:flex-start;font-size:16px}
+.scen li svg{flex:0 0 auto;width:22px;height:22px;color:var(--ember);margin-top:2px}
+.scen li span b{display:block;font-weight:600}
+.scen li span{color:var(--ink-2)}
+.scen li span b{color:var(--ink)}
+.try .ctas{margin-top:32px}
+.try .phone-cta{display:none}
+@media (max-width:980px){
+  .try .layout{grid-template-columns:1fr}
+  .phone{display:none}
+}
+
+/* waitlist */
+.waitlist{background:var(--teal-wash)}
+.waitlist .box{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+form.wl{display:flex;gap:10px;flex-wrap:wrap}
+form.wl input[type=email]{flex:1 1 240px;height:54px;border-radius:16px;border:1.5px solid var(--teal-line);background:#fff;padding:0 18px;font-size:16px}
+form.wl input[type=email]:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(15,92,86,.12)}
+.wl-msg{margin-top:12px;font-size:15px;min-height:1.5em}
+.wl-msg.ok{color:#2d7a4f}.wl-msg.err{color:#b23434}
+.hp{position:absolute;inset-inline-start:-9999px}
+.follow{display:flex;flex-wrap:wrap;gap:12px}
+@media (max-width:820px){ .waitlist .box{grid-template-columns:1fr;gap:26px} }
+
+/* about */
+.about .layout{display:grid;grid-template-columns:1fr 1fr;gap:64px}
+.about p{color:var(--ink-2);margin-top:16px}
+.timeline{list-style:none;position:relative;display:grid;gap:26px}
+.timeline::before{content:'';position:absolute;inset-inline-start:7px;top:8px;bottom:8px;width:2px;background:var(--hair)}
+.timeline li{position:relative;padding-inline-start:36px}
+.timeline li::before{content:'';position:absolute;inset-inline-start:0;top:6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--teal)}
+.timeline li:last-child::before{background:var(--teal)}
+.timeline b{display:block;font-family:var(--display);font-weight:600;font-size:17px}
+.timeline span{display:block;color:var(--ink-2);font-size:15.5px;margin-top:2px}
+.about .links{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+@media (max-width:860px){ .about .layout{grid-template-columns:1fr;gap:40px} }
+
+/* footer */
+footer{border-top:1px solid var(--hair);padding:36px 0 48px;font-size:14px;color:var(--ink-3)}
+footer .wrap{display:flex;gap:24px;justify-content:space-between;flex-wrap:wrap}
+footer p{max-width:44em}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .dim-draw{stroke-dashoffset:0}.fade-in{opacity:1}.scanline{display:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="tAIlored">t<b>AI</b>lored</a>
+    <nav class="links" aria-label="Sections">
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#privacy" data-i18n="nav.privacy">Privacy</a>
+      <a href="#try" data-i18n="nav.try">Try it</a>
+      <a href="#about" data-i18n="nav.about">About</a>
+    </nav>
+    <button class="lang" id="langBtn" type="button" lang="ar">عربي</button>
+    <a class="btn btn-ember" href="app/" data-app-link data-i18n="nav.cta">Try the prototype</a>
+  </div>
+</header>
+
+<main id="main">
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <h1 data-i18n="hero.title">Know your size in every brand before you order.</h1>
+      <p class="lede" data-i18n="hero.sub">tAIlored measures your feet with your phone camera and a bank card, then tells you the size each brand actually makes for you.</p>
+      <div class="ctas">
+        <a class="btn btn-ember" href="app/" data-app-link><span data-i18n="hero.cta1">Try the interactive prototype</span></a>
+        <a class="btn btn-ghost" href="#waitlist" data-i18n="hero.cta2" id="heroWl">Join the waitlist</a>
+      </div>
+      <p class="honest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></svg>
+        <span data-i18n="hero.note">This is a concept prototype. The scan is simulated, so nothing uses your camera and no real orders are placed.</span>
+      </p>
+    </div>
+
+    <div class="drawing" aria-hidden="true">
+      <svg viewBox="40 0 380 500">
+        <defs>
+          <linearGradient id="scanG" x1="0" x2="1"><stop offset="0" stop-color="#0f5c56" stop-opacity="0"/><stop offset=".5" stop-color="#2fb8a3"/><stop offset="1" stop-color="#0f5c56" stop-opacity="0"/></linearGradient>
+          <clipPath id="footClip"><path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z"/></clipPath>
+        </defs>
+        <path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" fill="#eaf6f4"/>
+        <g clip-path="url(#footClip)">
+          <path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" class="contour" stroke-width="1.12" opacity="0.22" transform="translate(212 215) scale(0.8) translate(-212 -215)"/><path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" class="contour" stroke-width="1.45" opacity="0.30" transform="translate(212 215) scale(0.62) translate(-212 -215)"/><path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" class="contour" stroke-width="2.00" opacity="0.38" transform="translate(212 215) scale(0.45) translate(-212 -215)"/><path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" class="contour" stroke-width="3.10" opacity="0.46" transform="translate(212 215) scale(0.29) translate(-212 -215)"/>
+          <rect class="scanline" x="100" y="28" width="210" height="3" fill="url(#scanG)"/>
+        </g>
+        <path d="M205.0,470.0 L235.4,464.5 L246.2,459.0 L253.1,453.5 L257.6,448.0 L260.0,442.5 L260.8,437.0 L261.2,431.5 L261.7,426.0 L262.1,420.5 L262.4,415.0 L262.8,409.5 L263.1,404.0 L263.4,398.5 L263.6,393.0 L263.8,387.5 L264.0,382.0 L264.2,376.5 L264.4,371.0 L264.6,365.5 L264.8,360.0 L264.9,354.5 L265.1,349.0 L265.3,343.5 L265.5,338.0 L265.7,332.5 L266.0,327.0 L266.3,321.5 L266.6,316.0 L267.0,310.5 L267.5,305.0 L268.1,299.5 L268.7,294.0 L269.5,288.5 L270.2,283.0 L271.1,277.5 L271.9,272.0 L272.8,266.5 L273.7,261.0 L274.7,255.5 L275.6,250.0 L276.5,244.5 L277.3,239.0 L278.1,233.5 L278.9,228.0 L279.7,222.5 L280.6,217.0 L281.6,211.5 L282.5,206.0 L283.5,200.5 L284.3,195.0 L285.1,189.5 L285.7,184.0 L286.2,178.5 L286.6,173.0 L286.7,167.5 L286.6,162.0 L286.3,156.5 L285.7,151.0 L284.8,145.5 L283.7,140.0 L282.5,134.5 L281.1,129.0 L279.6,123.5 L278.0,118.0 L276.3,112.5 L274.5,107.0 L272.8,101.5 L271.1,96.0 L269.2,90.5 L267.3,85.0 L265.1,79.5 L262.8,74.0 L260.4,68.5 L257.0,63.0 L252.4,57.5 L246.7,52.0 L239.7,46.5 L231.2,41.0 L220.4,35.5 L196.2,30.0 L175.8,32.7 L160.2,38.3 L149.2,43.8 L140.4,49.2 L133.5,54.8 L128.4,60.2 L125.1,65.8 L123.8,71.2 L123.5,76.7 L123.3,82.2 L123.2,87.8 L123.1,93.3 L123.0,98.8 L123.0,104.2 L123.0,109.8 L123.1,115.2 L123.2,120.8 L123.3,126.2 L123.4,131.8 L123.7,137.2 L123.9,142.8 L124.3,148.2 L124.9,153.8 L125.6,159.2 L126.4,164.8 L127.3,170.2 L128.3,175.8 L129.4,181.2 L130.5,186.7 L131.7,192.2 L132.9,197.8 L134.0,203.3 L135.2,208.8 L137.0,214.2 L139.3,219.8 L142.1,225.2 L145.1,230.8 L148.4,236.2 L151.8,241.7 L155.2,247.2 L158.5,252.8 L161.6,258.2 L164.3,263.8 L166.6,269.2 L168.4,274.8 L169.5,280.2 L169.8,285.8 L169.8,291.2 L169.8,296.8 L169.8,302.2 L169.8,307.8 L169.8,313.2 L169.8,318.8 L169.8,324.2 L169.8,329.8 L169.8,335.2 L169.7,340.8 L169.0,346.2 L167.8,351.8 L166.2,357.2 L164.2,362.8 L162.1,368.2 L159.9,373.8 L157.8,379.2 L155.8,384.8 L154.2,390.2 L153.0,395.8 L152.3,401.2 L152.2,406.8 L152.2,412.2 L152.2,417.8 L152.2,423.2 L152.3,428.8 L152.4,434.2 L152.5,439.8 L153.6,445.2 L156.6,450.8 L161.8,456.2 L169.8,461.8 L183.8,467.2 L205.0,470.0Z" class="contour" stroke-width="1.8"/>
+
+        <!-- length -->
+        <g>
+          <path class="dim" d="M300 30 H334 M300 470 H334" opacity=".45"/>
+          <path class="dim dim-draw" style="--len:440" d="M326 30 V470"/>
+          <path class="dim" d="M320 38 L326 30 L332 38 M320 462 L326 470 L332 462"/>
+          <g class="fade-in t1">
+            <text class="num" x="342" y="246" direction="ltr">263<tspan dx="4">mm</tspan></text>
+            <text class="lbl" x="342" y="268" data-i18n-svg="draw.length">Length</text>
+          </g>
+        </g>
+        <!-- width at the ball -->
+        <g>
+          <path class="dim dim-draw d2" style="--len:162" d="M126 162 H288"/>
+          <path class="dim" d="M126 154 V170 M288 154 V170"/>
+          <g class="fade-in t2">
+            <rect x="160" y="128" width="92" height="26" rx="8" fill="#fff" stroke="#dfe7e5"/>
+            <text class="num" x="206" y="148" text-anchor="middle" style="font-size:17px" direction="ltr">98<tspan dx="3">mm</tspan></text>
+            <text class="lbl" x="114" y="200" text-anchor="end" data-i18n-svg="draw.width">Width</text>
+          </g>
+        </g>
+        <!-- arch -->
+        <g class="fade-in t3">
+          <path d="M168 305 H92" stroke="#7b8a88" stroke-width="1" stroke-dasharray="3 4"/>
+          <circle cx="168" cy="305" r="4" fill="#d9714e"/>
+          <text class="num" x="54" y="296" style="font-size:17px" direction="ltr">42<tspan dx="3">mm</tspan></text>
+          <text class="lbl" x="54" y="318" data-i18n-svg="draw.arch">Arch</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="prob.title">A 43 in one brand can be a 44 in another.</h2>
+      <p data-i18n="prob.sub">Every brand builds its shoes on its own mould, so the number on the box means something different each time. Online you can't try before you buy, so you guess, order two sizes, or send them back.</p>
+    </div>
+    <div class="sizes-strip" aria-label="Example: one foot, different sizes">
+      <span class="chip"><span data-i18n="prob.one">One foot, 263 mm</span></span>
+      <span class="chip"><span data-i18n="prob.a">Brand A</span> <b>EU 42.5</b></span>
+      <span class="chip"><span data-i18n="prob.b">Brand B</span> <b>EU 43⅓</b></span>
+      <span class="chip"><span data-i18n="prob.c">Brand C</span> <b>EU 44</b></span>
+    </div>
+    <div class="grid">
+      <div class="pt"><h3 data-i18n="prob.p1t">Size charts disagree</h3><p data-i18n="prob.p1">Each brand converts foot length to a size differently. The gap is often a whole size.</p></div>
+      <div class="pt"><h3 data-i18n="prob.p2t">Width is ignored</h3><p data-i18n="prob.p2">Most charts only look at length, so wide and narrow feet get the same answer.</p></div>
+      <div class="pt"><h3 data-i18n="prob.p3t">Returns cost days</h3><p data-i18n="prob.p3">Another courier visit, another wait, and the pair you wanted may be gone.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="how.title">Thirty seconds, three steps.</h2>
+      <p data-i18n="how.sub">No tape measure and no extra hardware. Just your phone and a card from your wallet.</p>
+    </div>
+    <ol class="steps" style="list-style:none">
+      <li class="step"><span class="n">1</span><h3 data-i18n="how.s1t">Put a bank card beside your foot</h3><p data-i18n="how.s1">A card's size is fixed, so it turns pixels into millimetres. An A4 sheet or a 1 EGP coin also works.</p></li>
+      <li class="step"><span class="n">2</span><h3 data-i18n="how.s2t">Scan each foot</h3><p data-i18n="how.s2">Hold the phone over one foot, then the other. You get length, width and arch height.</p></li>
+      <li class="step"><span class="n">3</span><h3 data-i18n="how.s3t">See your size in every brand</h3><p data-i18n="how.s3">Each size comes with a confidence score, and the shop shows only styles in stock in your size.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features" style="padding-top:24px">
+  <div class="wrap layout">
+    <div class="sec-head">
+      <h2 data-i18n="feat.title">Built to say when it isn't sure.</h2>
+      <p data-i18n="feat.sub">A wrong size is worse than no size. So tAIlored shows how confident it is, and asks you to rescan instead of guessing.</p>
+    </div>
+    <div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1"/></svg></span>
+        <div><h3 data-i18n="feat.f1t">A confidence score on every scan</h3>
+          <p data-i18n="feat.f1">Below 80%, the app tells you why (low light, a shaky hand, carpet) and asks you to scan again.</p>
+          <div class="conf-demo"><div class="meter"><i></i></div><span class="meter-l">80%</span></div></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.7M20 4v4.7h-4.7M20 12a8 8 0 0 1-13.7 5.6L4 15.3M4 20v-4.7h4.7"/></svg></span>
+        <div><h3 data-i18n="feat.f2t">It learns from how they fit</h3><p data-i18n="feat.f2">Say a pair felt snug, and every future size in that brand adjusts for you.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12h18M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></span>
+        <div><h3 data-i18n="feat.f3t">Width counts</h3><p data-i18n="feat.f3">A wide foot gets room from a longer size, the way a good shop fitter would do it.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="19.6" r="1.5"/><circle cx="17.4" cy="19.6" r="1.5"/><path d="M2.6 3.6h2.6l2.8 12.4h10.2L21 7.4H6"/></svg></span>
+        <div><h3 data-i18n="feat.f4t">Shop only what fits</h3><p data-i18n="feat.f4">Filter every brand to styles that are in stock in your size, and pay cash on delivery, by card or with InstaPay.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6.5" y="2.8" width="11" height="18.4" rx="2.6"/><path d="M10.5 18h3"/></svg></span>
+        <div><h3 data-i18n="feat.f5t">Sign in with your phone number</h3><p data-i18n="feat.f5">A 6-digit code instead of a password. Or skip it and browse as a guest.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="privacy" id="privacy">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="priv.title">Your feet are personal. The app is designed around that.</h2>
+      <p data-i18n="priv.sub">Foot images are biometric data, and many people are uneasy photographing their feet. These are product requirements, not afterthoughts.</p>
+    </div>
+    <div class="grid">
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6.5" y="2.8" width="11" height="18.4" rx="2.6"/><path d="M10 11l1.6 1.6L14.6 9.5"/></svg>
+        <h3 data-i18n="priv.i1t">Processed on your phone</h3><p data-i18n="priv.i1">Camera frames are deleted as soon as your measurement is saved. Only the numbers are kept.</p></div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M5 19h14"/></svg>
+        <h3 data-i18n="priv.i2t">Yours to export or delete</h3><p data-i18n="priv.i2">Download everything as a file, or delete your measurements or your whole account in one step.</p></div>
+      <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3 data-i18n="priv.i3t">Built for Egypt's PDPL and GDPR</h3><p data-i18n="priv.i3">Sharing anonymised size data with brands is off by default, and only you can turn it on.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TRY -->
+<section class="try" id="try">
+  <div class="wrap layout">
+    <div>
+      <div class="sec-head">
+        <h2 data-i18n="try.title">Try it now, in your browser.</h2>
+        <p data-i18n="try.sub">The prototype has a working sizing engine and 32 screens. Full screen, a demo panel lets you change the lighting and steadiness before you scan.</p>
+      </div>
+      <ul class="scen">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b data-i18n="try.c1t">Scan, then buy in your size</b><span data-i18n="try.c1">Go from a scan to a placed order in under a minute.</span></span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b data-i18n="try.c2t">A scan that isn't good enough</b><span data-i18n="try.c2">Lower the light and watch the app refuse to guess.</span></span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b data-i18n="try.c3t">Fit feedback that changes sizing</b><span data-i18n="try.c3">Rate a pair as tight and see the brand's size move.</span></span></li>
+      </ul>
+      <div class="ctas">
+        <a class="btn btn-ember" href="app/" data-app-link data-i18n="try.cta">Open the full prototype</a>
+      </div>
+    </div>
+    <div class="phone" aria-label="Live prototype preview">
+      <div class="clip"><iframe id="appFrame" title="tAIlored prototype" loading="lazy" src="about:blank"></iframe></div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="waitlist" id="waitlist">
+  <div class="wrap box">
+    <div class="sec-head">
+      <h2 data-i18n="wl.title">Want it when it's real?</h2>
+      <p data-i18n="wl.sub">Leave your email and you'll hear when tAIlored launches in Cairo. One email, no newsletter.</p>
+    </div>
+    <div>
+      <form class="wl" id="wlForm" novalidate hidden>
+        <label for="wlEmail" class="hp" data-i18n="wl.label">Email address</label>
+        <input id="wlEmail" type="email" name="email" autocomplete="email" required placeholder="you@example.com" dir="ltr">
+        <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="btn btn-ember" type="submit" data-i18n="wl.cta">Join the waitlist</button>
+      </form>
+      <p class="wl-msg" id="wlMsg" role="status" aria-live="polite"></p>
+      <div class="follow" id="wlFollow" hidden>
+        <a class="btn btn-ember" data-link="linkedin" href="#" target="_blank" rel="noopener" data-i18n="wl.follow">Follow the build on LinkedIn</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="wrap layout">
+    <div>
+      <h2 data-i18n="ab.title">How this was built</h2>
+      <p data-i18n="ab.p1">tAIlored is a product concept by Hatem Ghazy, a Senior Product Owner based in Cairo. It's a working case study in taking an idea from requirements to something people can hold in their hand.</p>
+      <p data-i18n="ab.p2">The AI measurement model isn't built yet. Everything around it is designed and working: the flows, the edge cases, the sizing logic and the privacy controls.</p>
+      <div class="links">
+        <a class="btn btn-ghost" data-link="linkedin" href="#" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="btn btn-ghost" data-link="behance" href="https://www.behance.net/hatemghazy" target="_blank" rel="noopener">Behance</a>
+        <a class="btn btn-ghost" data-link="github" href="#" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+    <ol class="timeline">
+      <li><b data-i18n="ab.t1t">Business requirements</b><span data-i18n="ab.t1">Market, segments and functional requirements, including the 80% confidence rule.</span></li>
+      <li><b data-i18n="ab.t2t">User research in FigJam</b><span data-i18n="ab.t2">Personas, empathy maps, a customer journey map and the full sign-in flowchart.</span></li>
+      <li><b data-i18n="ab.t3t">Design system in Figma</b><span data-i18n="ab.t3">28 components with 133 variants, Arabic-ready type and dark mode.</span></li>
+      <li><b data-i18n="ab.t4t">Interactive prototype</b><span data-i18n="ab.t4">32 screens, a live sizing engine and every edge case clickable.</span></li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-i18n="foot.disc">tAIlored is a concept product. Brand names in the prototype belong to their owners and are used only to demonstrate sizing; there is no affiliation. No real orders, payments or measurements are processed.</p>
+    <p>© 2026 Hatem Ghazy</p>
+  </div>
+</footer>
+
+<script>
+/* ---------- settings: fill these in ---------- */
+const CONFIG = {
+  formspreeId: '',          // e.g. 'xyzabcd' from formspree.io — leave empty to hide the waitlist form
+  linkedin: '',             // e.g. 'https://www.linkedin.com/in/your-handle'
+  github: 'https://github.com/Hatemghazy/tailored'
+};
+
+const AR = {
+  'skip':'تخطَّ إلى المحتوى',
+  'nav.how':'طريقة العمل','nav.privacy':'الخصوصية','nav.try':'جرّبه','nav.about':'عن المشروع','nav.cta':'جرّب النموذج',
+  'hero.title':'اعرف مقاسك في كل ماركة قبل أن تطلب.',
+  'hero.sub':'يقيس tAIlored قدميك بكاميرا هاتفك وبطاقة بنكية، ثم يخبرك بالمقاس الذي يناسبك فعلًا في كل ماركة.',
+  'hero.cta1':'جرّب النموذج التفاعلي','hero.cta2':'انضم لقائمة الانتظار',
+  'hero.note':'هذا نموذج تجريبي لفكرة المنتج. الفحص محاكاة، فلا يستخدم كاميرتك ولا تُنفَّذ أي طلبات حقيقية.',
+  'draw.length':'الطول','draw.width':'العرض','draw.arch':'ارتفاع القوس',
+  'prob.title':'مقاس 43 في ماركة قد يكون 44 في ماركة أخرى.',
+  'prob.sub':'كل ماركة تصنع أحذيتها على قالبها الخاص، فالرقم على العلبة يعني شيئًا مختلفًا في كل مرة. وعند الشراء أونلاين لا يمكنك التجربة، فإما أن تخمّن، أو تطلب مقاسين، أو ترجع الحذاء.',
+  'prob.one':'قدم واحدة، 263 مم','prob.a':'ماركة أ','prob.b':'ماركة ب','prob.c':'ماركة ج',
+  'prob.p1t':'جداول المقاسات لا تتفق','prob.p1':'كل ماركة تحوّل طول القدم إلى مقاس بطريقتها، والفرق كثيرًا ما يكون مقاسًا كاملًا.',
+  'prob.p2t':'العرض لا يُحسب','prob.p2':'معظم الجداول تعتمد على الطول فقط، فتحصل القدم العريضة والنحيفة على الإجابة نفسها.',
+  'prob.p3t':'الإرجاع يضيّع أيامًا','prob.p3':'زيارة جديدة من المندوب، وانتظار جديد، وربما ينفد المقاس الذي أردته.',
+  'how.title':'ثلاثون ثانية، ثلاث خطوات.','how.sub':'بدون شريط قياس وبدون أجهزة إضافية. فقط هاتفك وبطاقة من محفظتك.',
+  'how.s1t':'ضع بطاقة بنكية بجانب قدمك','how.s1':'مقاس البطاقة ثابت، فيحوّل البكسلات إلى مليمترات. ورقة A4 أو عملة جنيه تعمل أيضًا.',
+  'how.s2t':'افحص كل قدم','how.s2':'وجّه الهاتف إلى قدم ثم الأخرى، لتحصل على الطول والعرض وارتفاع القوس.',
+  'how.s3t':'اعرف مقاسك في كل ماركة','how.s3':'كل مقاس معه نسبة ثقة، والمتجر يعرض فقط الموديلات المتوفرة بمقاسك.',
+  'feat.title':'مصمَّم ليخبرك عندما لا يكون متأكدًا.',
+  'feat.sub':'المقاس الخاطئ أسوأ من عدم وجود مقاس. لذلك يعرض tAIlored مدى ثقته، ويطلب منك إعادة الفحص بدل التخمين.',
+  'feat.f1t':'نسبة ثقة لكل فحص','feat.f1':'إذا قلّت عن 80%، يخبرك التطبيق بالسبب (إضاءة ضعيفة، يد غير ثابتة، سجادة) ويطلب إعادة الفحص.',
+  'feat.f2t':'يتعلّم من رأيك في المقاس','feat.f2':'قل إن الحذاء كان ضيقًا، فتتعدّل كل مقاساتك القادمة في هذه الماركة.',
+  'feat.f3t':'العرض له حساب','feat.f3':'القدم العريضة تحصل على مساحة من مقاس أطول، كما يفعل البائع المحترف.',
+  'feat.f4t':'تسوّق فقط ما يناسبك','feat.f4':'اعرض في كل ماركة الموديلات المتوفرة بمقاسك فقط، وادفع عند الاستلام أو بالبطاقة أو عبر InstaPay.',
+  'feat.f5t':'سجّل الدخول برقم هاتفك','feat.f5':'رمز من 6 أرقام بدل كلمة مرور. أو تصفّح كضيف.',
+  'priv.title':'قدماك شأن شخصي، والتطبيق مصمَّم على هذا الأساس.',
+  'priv.sub':'صور القدم بيانات بيومترية، وكثيرون لا يرتاحون لتصوير أقدامهم. هذه متطلبات أساسية في المنتج وليست إضافات.',
+  'priv.i1t':'المعالجة على هاتفك','priv.i1':'تُحذف صور الكاميرا فور حفظ القياس، ولا يُحتفظ إلا بالأرقام.',
+  'priv.i2t':'بياناتك تصدّرها أو تحذفها','priv.i2':'نزّل كل بياناتك في ملف، أو احذف قياساتك أو حسابك بالكامل بخطوة واحدة.',
+  'priv.i3t':'متوافق مع قانون حماية البيانات المصري وGDPR','priv.i3':'مشاركة بيانات المقاسات المجهّلة مع الماركات مغلقة افتراضيًا، وأنت وحدك من يفعّلها.',
+  'try.title':'جرّبه الآن من متصفحك.',
+  'try.sub':'النموذج فيه محرّك مقاسات حقيقي و32 شاشة. في وضع ملء الشاشة توجد لوحة تجريبية تغيّر منها الإضاءة وثبات اليد قبل الفحص.',
+  'try.c1t':'افحص، ثم اشترِ بمقاسك','try.c1':'من الفحص إلى تأكيد الطلب في أقل من دقيقة.',
+  'try.c2t':'فحص غير كافٍ','try.c2':'قلّل الإضاءة وشاهد التطبيق يرفض التخمين.',
+  'try.c3t':'رأيك يغيّر المقاس','try.c3':'قيّم الحذاء بأنه ضيق وشاهد مقاس الماركة يتغيّر.',
+  'try.cta':'افتح النموذج كاملًا',
+  'wl.title':'تريده عندما يصبح حقيقيًا؟','wl.sub':'اترك بريدك وسنخبرك عند إطلاق tAIlored في القاهرة. رسالة واحدة، بلا نشرات بريدية.',
+  'wl.label':'البريد الإلكتروني','wl.cta':'انضم لقائمة الانتظار','wl.follow':'تابع رحلة البناء على LinkedIn',
+  'wl.ok':'تمت إضافتك للقائمة. سنراسلك عند الإطلاق.','wl.bad':'أدخل بريدًا إلكترونيًا صحيحًا، مثل name@example.com.',
+  'wl.err':'لم يتم الإرسال. تحقق من اتصالك وحاول مرة أخرى.','wl.sending':'جارٍ الإرسال…',
+  'ab.title':'كيف بُني هذا المشروع',
+  'ab.p1':'tAIlored فكرة منتج من حاتم غازي، مالك منتج أول مقيم في القاهرة. وهو دراسة حالة عملية لتحويل فكرة من متطلبات مكتوبة إلى شيء يمكن للناس تجربته بأيديهم.',
+  'ab.p2':'نموذج القياس بالذكاء الاصطناعي لم يُبنَ بعد. أما كل ما حوله فمصمَّم ويعمل: مسارات الاستخدام، والحالات الاستثنائية، ومنطق المقاسات، وأدوات الخصوصية.',
+  'ab.t1t':'متطلبات العمل','ab.t1':'السوق والشرائح والمتطلبات الوظيفية، ومنها قاعدة الثقة 80%.',
+  'ab.t2t':'بحث المستخدمين في FigJam','ab.t2':'الشخصيات، وخرائط التعاطف، ورحلة العميل، ومخطط تسجيل الدخول كاملًا.',
+  'ab.t3t':'نظام التصميم في Figma','ab.t3':'28 مكوّنًا و133 حالة، بخطوط تدعم العربية ووضع داكن.',
+  'ab.t4t':'النموذج التفاعلي','ab.t4':'32 شاشة، ومحرّك مقاسات حي، وكل الحالات الاستثنائية قابلة للتجربة.',
+  'foot.disc':'tAIlored فكرة منتج تجريبية. أسماء الماركات في النموذج ملك لأصحابها، وتُستخدم فقط لتوضيح فكرة المقاسات، ولا توجد أي شراكة معها. لا تُنفَّذ أي طلبات أو مدفوعات أو قياسات حقيقية.'
+};
+const EN_MSG = { 'wl.ok':"You're on the list. We'll email you when it launches.",
+  'wl.bad':'Enter a valid email address, like name@example.com.',
+  'wl.err':"That didn't go through. Check your connection and try again.", 'wl.sending':'Sending…' };
+
+const EN = {};
+document.querySelectorAll('[data-i18n]').forEach(el => EN[el.dataset.i18n] = el.textContent);
+document.querySelectorAll('[data-i18n-svg]').forEach(el => EN[el.dataset.i18nSvg] = el.textContent);
+Object.assign(EN, EN_MSG);
+const TITLES = { en:document.title, ar:'tAIlored — مقاسك في كل ماركة' };
+
+let lang = 'en';
+function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k); }catch(e){ return null; } }
+function t(k){ return (lang==='ar' ? AR[k] : EN[k]) || EN[k] || k; }
+
+function setLang(l, save){
+  lang = l === 'ar' ? 'ar' : 'en';
+  const html = document.documentElement;
+  html.lang = lang; html.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-svg]').forEach(el => {
+    el.textContent = t(el.dataset.i18nSvg);
+  });
+  const b = document.getElementById('langBtn');
+  b.textContent = lang === 'ar' ? 'English' : 'عربي';
+  b.lang = lang === 'ar' ? 'en' : 'ar';
+  b.setAttribute('aria-label', lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية');
+  document.title = TITLES[lang];
+  document.querySelectorAll('[data-app-link]').forEach(a => a.href = 'app/?lang=' + lang);
+  const f = document.getElementById('appFrame');
+  if (f && f.dataset.loaded) f.src = 'app/?embed=1&lang=' + lang;
+  if (save) store('tailored-lang', lang);
+  try{ const u = new URL(location.href); u.searchParams.set('lang', lang); history.replaceState(null,'',u); }catch(e){}
+}
+document.getElementById('langBtn').addEventListener('click', () => setLang(lang === 'ar' ? 'en' : 'ar', true));
+
+const qp = new URLSearchParams(location.search).get('lang');
+const saved = store('tailored-lang');
+setLang(qp || saved || ((navigator.language||'').toLowerCase().startsWith('ar') ? 'ar' : 'en'), false);
+
+/* live prototype loads only when it scrolls near, and only on wide screens */
+const frame = document.getElementById('appFrame');
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting && getComputedStyle(frame.closest('.phone')).display !== 'none'){
+    frame.dataset.loaded = '1'; frame.src = 'app/?embed=1&lang=' + lang; io.disconnect();
+  }
+}), { rootMargin:'300px' });
+io.observe(document.getElementById('try'));
+
+/* links */
+document.querySelectorAll('[data-link]').forEach(a => {
+  const v = CONFIG[a.dataset.link];
+  if (a.dataset.link === 'behance') return;
+  if (v) a.href = v; else a.hidden = true;
+});
+
+/* waitlist */
+const form = document.getElementById('wlForm'), msg = document.getElementById('wlMsg');
+if (CONFIG.formspreeId){
+  form.hidden = false;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ msg.className='wl-msg err'; msg.textContent=t('wl.bad'); form.email.focus(); return; }
+    msg.className='wl-msg'; msg.textContent=t('wl.sending');
+    try{
+      const r = await fetch('https://formspree.io/f/' + CONFIG.formspreeId, { method:'POST',
+        headers:{ 'Accept':'application/json' }, body:new FormData(form) });
+      if (!r.ok) throw 0;
+      form.reset(); msg.className='wl-msg ok'; msg.textContent=t('wl.ok');
+    }catch(_){ msg.className='wl-msg err'; msg.textContent=t('wl.err'); }
+  });
+} else {
+  document.getElementById('wlFollow').hidden = !CONFIG.linkedin;
+  if (!CONFIG.linkedin){
+    document.getElementById('waitlist').hidden = true;
+    document.getElementById('heroWl').hidden = true;
+  }
+}
+
+/* nav hairline once scrolled */
+const nav = document.getElementById('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive:true });
+</script>
+</body>
+</html>
